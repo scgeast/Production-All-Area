@@ -7,7 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -58,7 +58,7 @@
         
         .sidebar-toggle {
             position: fixed;
-            top: 20px;
+            top: 80px;
             left: 20px;
             z-index: 1001;
             background: #4a6491;
@@ -268,28 +268,22 @@
         
         .kpi-card {
             background: white;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
             text-align: center;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
         }
         
         .kpi-title {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: #555;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
         
         .kpi-value {
-            font-size: 1.8rem;
+            font-size: 1.5rem;
             font-weight: bold;
             color: #2c3e50;
-            margin-bottom: 15px;
-        }
-        
-        .gauge-container {
-            height: 150px;
-            position: relative;
         }
         
         .charts-container {
@@ -419,6 +413,14 @@
             body.sidebar-open {
                 margin-left: 250px;
             }
+            
+            .kpi-title {
+                font-size: 0.8rem;
+            }
+            
+            .kpi-value {
+                font-size: 1.2rem;
+            }
         }
         
         @media (max-width: 480px) {
@@ -442,7 +444,7 @@
 </head>
 <body>
     <button class="sidebar-toggle" onclick="toggleSidebar()">
-        <i class="fas fa-filter"></i> Filter
+        <i class="fas fa-angle-right" id="sidebar-icon"></i>
     </button>
 
     <div class="sidebar" id="sidebar">
@@ -534,16 +536,10 @@
                 <div class="kpi-card">
                     <div class="kpi-title">% of Target</div>
                     <div class="kpi-value" id="target-percent">0%</div>
-                    <div class="gauge-container">
-                        <canvas id="targetGauge"></canvas>
-                    </div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-title">% Actual Supply</div>
                     <div class="kpi-value" id="supply-percent">0%</div>
-                    <div class="gauge-container">
-                        <canvas id="supplyGauge"></canvas>
-                    </div>
                 </div>
             </div>
             
@@ -614,8 +610,9 @@
         let filteredData = [];
         let allAreas = [];
         let allPeriods = [];
-        let currentPeriod = "";
+        let currentPeriod = "Semua Periode";
         let isAllAreasSelected = false;
+        let activePeriodFilter = "all";
         
         // Update waktu terakhir
         function updateLastUpdateTime() {
@@ -635,8 +632,16 @@
         // Toggle sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
+            const sidebarIcon = document.getElementById('sidebar-icon');
             sidebar.classList.toggle('open');
             document.body.classList.toggle('sidebar-open');
+            
+            // Ubah ikon berdasarkan status sidebar
+            if (sidebar.classList.contains('open')) {
+                sidebarIcon.className = 'fas fa-angle-left';
+            } else {
+                sidebarIcon.className = 'fas fa-angle-right';
+            }
         }
         
         // Toggle filter content
@@ -929,59 +934,57 @@
             
             // Jika semua area dipilih atau tidak ada area yang dipilih (select all)
             if (selectedAreas.length === allAreas.length || selectedAreas.length === 0) {
-                filteredData = rawData;
                 isAllAreasSelected = true;
             } else {
-                // Filter data berdasarkan area yang dipilih
-                filteredData = rawData.filter(row => {
-                    const normalizedRow = normalizeData([row])[0];
-                    const area = getValue(normalizedRow, ['area']) || '';
-                    return selectedAreas.includes(area);
-                });
                 isAllAreasSelected = false;
             }
             
-            // Terapkan filter periode juga
-            applyPeriodFilter();
+            // Terapkan filter
+            applyFilters();
         }
         
         function applyPeriodFilter() {
             const periodSelect = document.getElementById('period-select');
-            const selectedPeriod = periodSelect.value;
+            activePeriodFilter = periodSelect.value;
             
-            if (selectedPeriod === 'all') {
-                // Tidak perlu filter berdasarkan periode
-                if (isAllAreasSelected) {
-                    filteredData = rawData;
-                } else {
-                    // Tetap terapkan filter area
-                    applyAreaFilter();
-                    return;
-                }
+            // Update teks periode yang aktif
+            if (activePeriodFilter === 'all') {
+                document.getElementById('period-value').textContent = "Semua Periode";
             } else {
-                // Filter data berdasarkan periode yang dipilih
+                document.getElementById('period-value').textContent = activePeriodFilter;
+            }
+            
+            // Terapkan filter
+            applyFilters();
+        }
+        
+        function applyFilters() {
+            // Pertama, filter berdasarkan periode
+            if (activePeriodFilter === 'all') {
+                filteredData = rawData;
+            } else {
                 filteredData = rawData.filter(row => {
                     const normalizedRow = normalizeData([row])[0];
                     const period = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || '';
-                    return period === selectedPeriod;
+                    return period === activePeriodFilter;
+                });
+            }
+            
+            // Kemudian, filter berdasarkan area jika tidak memilih "Select All"
+            if (!isAllAreasSelected) {
+                const selectedAreas = [];
+                const checkboxes = document.querySelectorAll('input[name="area"]:checked');
+                
+                checkboxes.forEach(checkbox => {
+                    selectedAreas.push(checkbox.value);
                 });
                 
-                // Juga terapkan filter area jika ada
-                if (!isAllAreasSelected) {
-                    const selectedAreas = [];
-                    const checkboxes = document.querySelectorAll('input[name="area"]:checked');
-                    
-                    checkboxes.forEach(checkbox => {
-                        selectedAreas.push(checkbox.value);
+                if (selectedAreas.length > 0) {
+                    filteredData = filteredData.filter(row => {
+                        const normalizedRow = normalizeData([row])[0];
+                        const area = getValue(normalizedRow, ['area']) || '';
+                        return selectedAreas.includes(area);
                     });
-                    
-                    if (selectedAreas.length > 0) {
-                        filteredData = filteredData.filter(row => {
-                            const normalizedRow = normalizeData([row])[0];
-                            const area = getValue(normalizedRow, ['area']) || '';
-                            return selectedAreas.includes(area);
-                        });
-                    }
                 }
             }
             
@@ -1055,7 +1058,6 @@
         function initializeCharts() {
             // Inisialisasi semua chart dengan data kosong
             const chartIds = [
-                'targetGauge', 'supplyGauge', 
                 'volumeTargetChart', 'targetPercentChart', 
                 'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
             ];
@@ -1063,48 +1065,39 @@
             chartIds.forEach(id => {
                 const ctx = document.getElementById(id).getContext('2d');
                 
-                // Buat chart berdasarkan jenisnya
-                switch(id) {
-                    case 'targetGauge':
-                    case 'supplyGauge':
-                        charts[id] = new Chart(ctx, {
-                            type: 'doughnut',
-                            data: {
-                                datasets: [{
-                                    data: [0, 100],
-                                    backgroundColor: ['#4e73df', '#e0e0e0'],
-                                    borderWidth: 0
-                                }]
+                charts[id] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Data',
+                            data: [],
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
                             },
-                            options: {
-                                cutout: '70%',
-                                plugins: {
-                                    legend: { display: false },
-                                    tooltip: { enabled: false }
+                            datalabels: {
+                                display: true,
+                                color: 'black',
+                                align: 'end',
+                                anchor: 'end',
+                                formatter: function(value) {
+                                    return value.toFixed(1);
                                 }
                             }
-                        });
-                        break;
-                    default:
-                        charts[id] = new Chart(ctx, {
-                            type: 'bar',
-                            data: {
-                                labels: [],
-                                datasets: [{
-                                    label: 'Data',
-                                    data: [],
-                                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                scales: {
-                                    y: { beginAtZero: true }
-                                }
-                            }
-                        });
-                }
+                        }
+                    }
+                });
             });
         }
         
@@ -1158,10 +1151,6 @@
             document.getElementById('target-percent').textContent = `${avgTargetPercent.toFixed(2)}%`;
             document.getElementById('supply-percent').textContent = `${avgActualSupply.toFixed(2)}%`;
             
-            // Update gauge charts
-            updateGaugeChart('targetGauge', avgTargetPercent);
-            updateGaugeChart('supplyGauge', avgActualSupply);
-            
             // Siapkan data untuk chart berdasarkan plant
             const plantData = {};
             
@@ -1211,46 +1200,44 @@
                 [plantNames.map(p => plantData[p].mtdVol), plantNames.map(p => plantData[p].target)],
                 ['MTD VOL', 'ANN FM Target'],
                 ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 1)'],
-                ['bar', 'line']
+                ['bar', 'bar'],
+                [true, true]
             );
             
             updateChartData('targetPercentChart', plantNames, 
                 [plantNames.map(p => plantData[p].targetPercent / plantData[p].count)],
                 ['% of Target'],
                 ['rgba(75, 192, 192, 0.7)'],
-                ['bar']
+                ['bar'],
+                [true]
             );
             
             updateChartData('avgVolumeChart', plantNames, 
                 [plantNames.map(p => plantData[p].avgVolDay / plantData[p].count)],
                 ['Avg Vol. Day'],
                 ['rgba(153, 102, 255, 0.7)'],
-                ['line']
+                ['line'],
+                [true]
             );
             
             updateChartData('rmcVolumeChart', plantNames, 
                 [plantNames.map(p => plantData[p].mtdVol), plantNames.map(p => plantData[p].rmcSchedule)],
                 ['MTD VOL', 'RMC Schedule'],
                 ['rgba(54, 162, 235, 0.7)', 'rgba(255, 159, 64, 1)'],
-                ['bar', 'line']
+                ['bar', 'line'],
+                [true, true]
             );
             
             updateChartData('supplyPercentChart', plantNames, 
                 [plantNames.map(p => plantData[p].actualSupply / plantData[p].count)],
                 ['% Actual Supply'],
                 ['rgba(255, 205, 86, 0.7)'],
-                ['bar']
+                ['bar'],
+                [true]
             );
         }
         
-        function updateGaugeChart(chartId, value) {
-            if (charts[chartId]) {
-                charts[chartId].data.datasets[0].data = [value, 100 - value];
-                charts[chartId].update();
-            }
-        }
-        
-        function updateChartData(chartId, labels, datasetsData, datasetsLabel, colors, types) {
+        function updateChartData(chartId, labels, datasetsData, datasetsLabel, colors, types, showDataLabels) {
             if (charts[chartId]) {
                 charts[chartId].data.labels = labels;
                 
@@ -1274,10 +1261,27 @@
                         dataset.pointRadius = 5;
                         dataset.pointBorderColor = colors[i].replace('0.7', '1');
                         dataset.pointBackgroundColor = 'white';
+                        dataset.tension = 0.1;
                     }
                     
                     charts[chartId].data.datasets.push(dataset);
                 }
+                
+                // Konfigurasi data labels
+                charts[chartId].options.plugins.datalabels = {
+                    display: function(context) {
+                        return showDataLabels[context.datasetIndex] || false;
+                    },
+                    color: function(context) {
+                        // Beri warna merah untuk target, biru untuk lainnya
+                        return context.datasetIndex === 1 ? 'red' : 'blue';
+                    },
+                    align: 'end',
+                    anchor: 'end',
+                    formatter: function(value) {
+                        return value.toFixed(1);
+                    }
+                };
                 
                 charts[chartId].update();
             }
@@ -1314,57 +1318,98 @@
             doc.setFontSize(18);
             doc.text('PRODUCTION REPORT', 105, 15, { align: 'center' });
             doc.setFontSize(12);
-            doc.text(`Periode: ${currentPeriod}`, 105, 22, { align: 'center' });
+            doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 105, 22, { align: 'center' });
             doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 105, 28, { align: 'center' });
             
-            // Siapkan data untuk tabel
-            const tableData = [];
-            filteredData.forEach(row => {
-                const normalizedRow = normalizeData([row])[0];
-                const periode = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
-                const area = getValue(normalizedRow, ['area']) || 'N/A';
-                const plant = getValue(normalizedRow, ['plantname', 'plant']) || 'N/A';
-                const target = parseIndonesianNumber(getValue(normalizedRow, ['annfmtarget', 'annfm', 'target']));
-                const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
-                const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
-                
-                // Hitung % of Target (MTD VOL / ANN FM Target)
-                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
-                
-                // Hitung % Actual Supply (MTD VOL / RMC Schedule)
-                const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
-                
-                tableData.push([
-                    periode,
-                    area,
-                    plant,
-                    target.toLocaleString('id-ID'),
-                    mtdVol.toLocaleString('id-ID'),
-                    `${targetPercent.toFixed(2)}%`,
-                    rmc.toLocaleString('id-ID'),
-                    `${actualSupply.toFixed(2)}%`
-                ]);
+            // Capture charts as images and add to PDF
+            let yPosition = 40;
+            const chartIds = [
+                'volumeTargetChart', 'targetPercentChart', 
+                'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
+            ];
+            
+            const chartPromises = chartIds.map((chartId, index) => {
+                return new Promise((resolve) => {
+                    setTimeout(() => {
+                        html2canvas(document.getElementById(chartId)).then(canvas => {
+                            const imgData = canvas.toDataURL('image/png');
+                            
+                            // Add chart to PDF
+                            if (index > 0 && index % 2 === 0) {
+                                doc.addPage();
+                                yPosition = 20;
+                            }
+                            
+                            const imgWidth = 90;
+                            const imgHeight = canvas.height * imgWidth / canvas.width;
+                            
+                            if (index % 2 === 0) {
+                                doc.addImage(imgData, 'PNG', 15, yPosition, imgWidth, imgHeight);
+                            } else {
+                                doc.addImage(imgData, 'PNG', 110, yPosition, imgWidth, imgHeight);
+                                yPosition += imgHeight + 10;
+                            }
+                            
+                            resolve();
+                        });
+                    }, index * 500); // Delay to ensure charts are rendered
+                });
             });
             
-            // Buat tabel
-            doc.autoTable({
-                head: [['Periode', 'Area', 'Plant', 'ANN FM Target', 'MTD VOL', '% of Target', 'RMC Schedule', '% Actual Supply']],
-                body: tableData,
-                startY: 35,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [74, 100, 145],
-                    textColor: 255
-                },
-                styles: {
-                    fontSize: 8,
-                    cellPadding: 1
-                },
-                margin: { left: 10, right: 10 }
+            // After adding charts, add the data table
+            Promise.all(chartPromises).then(() => {
+                // Add data table
+                doc.addPage();
+                
+                // Siapkan data untuk tabel
+                const tableData = [];
+                filteredData.forEach(row => {
+                    const normalizedRow = normalizeData([row])[0];
+                    const periode = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
+                    const area = getValue(normalizedRow, ['area']) || 'N/A';
+                    const plant = getValue(normalizedRow, ['plantname', 'plant']) || 'N/A';
+                    const target = parseIndonesianNumber(getValue(normalizedRow, ['annfmtarget', 'annfm', 'target']));
+                    const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
+                    const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
+                    
+                    // Hitung % of Target (MTD VOL / ANN FM Target)
+                    const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                    
+                    // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                    const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
+                    
+                    tableData.push([
+                        periode,
+                        area,
+                        plant,
+                        target.toLocaleString('id-ID'),
+                        mtdVol.toLocaleString('id-ID'),
+                        `${targetPercent.toFixed(2)}%`,
+                        rmc.toLocaleString('id-ID'),
+                        `${actualSupply.toFixed(2)}%`
+                    ]);
+                });
+                
+                // Buat tabel
+                doc.autoTable({
+                    head: [['Periode', 'Area', 'Plant', 'ANN FM Target', 'MTD VOL', '% of Target', 'RMC Schedule', '% Actual Supply']],
+                    body: tableData,
+                    startY: 20,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [74, 100, 145],
+                        textColor: 255
+                    },
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 1
+                    },
+                    margin: { left: 10, right: 10 }
+                });
+                
+                // Simpan PDF
+                doc.save('production_report.pdf');
             });
-            
-            // Simpan PDF
-            doc.save('production_report.pdf');
         }
     </script>
 </body>
