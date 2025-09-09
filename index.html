@@ -6,8 +6,8 @@
     <title>PRODUCTION ALL AREA</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* CSS tetap sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -19,14 +19,107 @@
             background-color: #f5f7f9;
             color: #333;
             padding: 20px;
+            display: flex;
         }
         
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            display: flex;
+            width: 100%;
+            gap: 20px;
+        }
+        
+        /* Sidebar Filter */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            height: fit-content;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #4a6491;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        
+        .filter-section {
+            margin-bottom: 20px;
+        }
+        
+        .filter-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            cursor: pointer;
+        }
+        
+        .filter-title {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .filter-content {
+            display: block;
+        }
+        
+        .filter-group {
+            margin-bottom: 15px;
+        }
+        
+        .filter-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .filter-group input,
+        .filter-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .checkbox-group {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        
+        .checkbox-item {
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .checkbox-item input {
+            margin-right: 8px;
+            width: auto;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex-grow: 1;
         }
         
         header {
+            position: relative;
             text-align: center;
             padding: 20px;
             background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
@@ -34,6 +127,36 @@
             border-radius: 10px;
             margin-bottom: 20px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        
+        .last-update {
+            text-align: right;
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .export-btn {
+            background: #1e7b1e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+        }
+        
+        .export-btn:hover {
+            background: #2a9a2a;
         }
         
         h1 {
@@ -149,6 +272,10 @@
             margin-bottom: 20px;
         }
         
+        .charts-container.vertical {
+            grid-template-columns: 1fr;
+        }
+        
         .chart-card {
             background: white;
             padding: 20px;
@@ -207,6 +334,11 @@
             background-color: #f9f9f9;
         }
         
+        .percentage-cell {
+            text-align: right;
+            font-weight: 500;
+        }
+        
         .error-message {
             color: #e74a3b;
             text-align: center;
@@ -240,6 +372,46 @@
             .charts-container {
                 grid-template-columns: 1fr;
             }
+            
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                margin-bottom: 20px;
+            }
+        }
+        
+        @media (max-width: 992px) {
+            .sidebar {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100%;
+                z-index: 999;
+                overflow-y: auto;
+                width: 300px;
+            }
+            
+            .sidebar.active {
+                display: block;
+            }
+            
+            .sidebar-toggle {
+                display: block;
+            }
+            
+            .header-top {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            
+            .last-update {
+                text-align: center;
+            }
         }
         
         @media (max-width: 768px) {
@@ -252,135 +424,234 @@
             .kpi-container {
                 grid-template-columns: 1fr;
             }
+            
+            header {
+                padding: 15px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+            }
         }
     </style>
 </head>
 <body>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">
+        <i class="fas fa-filter"></i> Filter
+    </button>
+
     <div class="container">
-        <header>
-            <h1>PRODUCTION ALL AREA</h1>
-            <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
-        </header>
-        
-        <div class="error-message" id="error-message"></div>
-        
-        <div class="upload-container" id="upload-container">
-            <input type="file" id="excel-file" accept=".xlsx, .xls">
-            <div id="upload-area">
-                <div class="upload-icon">📤</div>
-                <div class="upload-text">
-                    <h3>Unggah File Excel</h3>
-                    <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
-                    <p><small>Pastikan file memiliki kolom: Area, Plant Name, ANN FM Target, MTD VOL, % of Target, Avg Vol.Day, RMC Schedule, Actual Supply</small></p>
+        <!-- Sidebar Filter -->
+        <div class="sidebar" id="sidebar">
+            <div class="filter-section">
+                <div class="filter-header" onclick="toggleFilter('period-filter')">
+                    <div class="filter-title">Periode (Timeline)</div>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="filter-content" id="period-filter">
+                    <div class="filter-group">
+                        <label for="start-date">Dari Tanggal</label>
+                        <input type="date" id="start-date">
+                    </div>
+                    <div class="filter-group">
+                        <label for="end-date">Sampai Tanggal</label>
+                        <input type="date" id="end-date">
+                    </div>
+                    <button class="export-btn" onclick="applyPeriodFilter()">
+                        <i class="fas fa-check"></i> Terapkan
+                    </button>
+                </div>
+            </div>
+            
+            <div class="filter-section">
+                <div class="filter-header" onclick="toggleFilter('area-filter')">
+                    <div class="filter-title">Area</div>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="filter-content" id="area-filter">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="select-all-areas" onchange="toggleAllAreas(this.checked)">
+                        <label for="select-all-areas">Select All</label>
+                    </div>
+                    <div class="checkbox-group" id="area-checkboxes">
+                        <!-- Area options will be populated here -->
+                    </div>
+                    <button class="export-btn" onclick="applyAreaFilter()">
+                        <i class="fas fa-check"></i> Terapkan
+                    </button>
                 </div>
             </div>
         </div>
-        
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Memproses data...</p>
-        </div>
-        
-        <button class="debug-toggle" onclick="toggleDebug()">Toggle Debug Info</button>
-        <div class="debug-panel" id="debug-panel">
-            <h3>Debug Information</h3>
-            <pre id="debug-output"></pre>
-        </div>
-        
-        <div id="dashboard-content" style="display: none;">
-            <div class="kpi-container">
-                <div class="kpi-card">
-                    <div class="kpi-title">Total Area</div>
-                    <div class="kpi-value" id="total-area">0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">Total Plant</div>
-                    <div class="kpi-value" id="total-plant">0</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">% of Target</div>
-                    <div class="kpi-value" id="target-percent">0%</div>
-                    <div class="gauge-container">
-                        <canvas id="targetGauge"></canvas>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <header>
+                <div class="header-top">
+                    <div class="last-update">
+                        Last Update: <span id="last-update-time"></span>
                     </div>
+                    <button class="export-btn" onclick="exportToExcel()">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-title">% Actual Supply</div>
-                    <div class="kpi-value" id="supply-percent">0%</div>
-                    <div class="gauge-container">
-                        <canvas id="supplyGauge"></canvas>
+                
+                <h1>PRODUCTION ALL AREA</h1>
+                <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
+            </header>
+            
+            <div class="error-message" id="error-message"></div>
+            
+            <div class="upload-container" id="upload-container">
+                <input type="file" id="excel-file" accept=".xlsx, .xls">
+                <div id="upload-area">
+                    <div class="upload-icon">📤</div>
+                    <div class="upload-text">
+                        <h3>Unggah File Excel</h3>
+                        <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
+                        <p><small>Pastikan file memiliki kolom: Area, Plant Name, ANN FM Target, MTD VOL, % of Target, Avg Vol.Day, RMC Schedule, Actual Supply</small></p>
                     </div>
                 </div>
             </div>
             
-            <div class="charts-container">
-                <div class="chart-card">
-                    <div class="chart-title">MTD VOL vs ANN FM Target per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="volumeTargetChart"></canvas>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Memproses data...</p>
+            </div>
+            
+            <button class="debug-toggle" onclick="toggleDebug()">Toggle Debug Info</button>
+            <div class="debug-panel" id="debug-panel">
+                <h3>Debug Information</h3>
+                <pre id="debug-output"></pre>
+            </div>
+            
+            <div id="dashboard-content" style="display: none;">
+                <div class="kpi-container">
+                    <div class="kpi-card">
+                        <div class="kpi-title">Total Area</div>
+                        <div class="kpi-value" id="total-area">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Total Plant</div>
+                        <div class="kpi-value" id="total-plant">0</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">% of Target</div>
+                        <div class="kpi-value" id="target-percent">0%</div>
+                        <div class="gauge-container">
+                            <canvas id="targetGauge"></canvas>
+                        </div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">% Actual Supply</div>
+                        <div class="kpi-value" id="supply-percent">0%</div>
+                        <div class="gauge-container">
+                            <canvas id="supplyGauge"></canvas>
+                        </div>
                     </div>
                 </div>
-                <div class="chart-card">
-                    <div class="chart-title">% of Target per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="targetPercentChart"></canvas>
+                
+                <div class="charts-container" id="charts-container">
+                    <div class="chart-card">
+                        <div class="chart-title">MTD VOL vs ANN FM Target per Plant</div>
+                        <div class="chart-container">
+                            <canvas id="volumeTargetChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title">% of Target per Plant</div>
+                        <div class="chart-container">
+                            <canvas id="targetPercentChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title">Avg Vol. Day per Plant</div>
+                        <div class="chart-container">
+                            <canvas id="avgVolumeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
+                        <div class="chart-container">
+                            <canvas id="rmcVolumeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-title">% Actual Supply per Plant</div>
+                        <div class="chart-container">
+                            <canvas id="supplyPercentChart"></canvas>
+                        </div>
                     </div>
                 </div>
-                <div class="chart-card">
-                    <div class="chart-title">Avg Vol. Day per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="avgVolumeChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="rmcVolumeChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-title">% Actual Supply per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="supplyPercentChart"></canvas>
-                    </div>
+                
+                <div class="data-preview" id="data-preview">
+                    <h3>Pratinjau Data</h3>
+                    <table>
+                        <thead id="preview-head">
+                            <tr>
+                                <th>Periode</th>
+                                <th>Area</th>
+                                <th>Plant</th>
+                                <th>ANN FM Target</th>
+                                <th>MTD VOL</th>
+                                <th>% of Target</th>
+                                <th>RMC Schedule</th>
+                                <th>% Actual Supply</th>
+                            </tr>
+                        </thead>
+                        <tbody id="preview-body">
+                            <!-- Data akan diisi oleh JavaScript -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
             
-            <div class="data-preview" id="data-preview">
-                <h3>Pratinjau Data (10 Baris Pertama)</h3>
-                <table>
-                    <thead id="preview-head">
-                        <tr>
-                            <th>Area</th>
-                            <th>Plant</th>
-                            <th>ANN FM Target</th>
-                            <th>MTD VOL</th>
-                            <th>% of Target</th>
-                            <th>Avg Vol.Day</th>
-                            <th>RMC Schedule</th>
-                            <th>Actual Supply</th>
-                        </tr>
-                    </thead>
-                    <tbody id="preview-body">
-                        <!-- Data akan diisi oleh JavaScript -->
-                    </tbody>
-                </table>
-            </div>
+            <footer>
+                Production All Area by L=23-51Xe
+            </footer>
         </div>
-        
-        <footer>
-            Production All Area by L=23-51Xe
-        </footer>
     </div>
 
     <script>
         // Inisialisasi variabel global untuk chart
         let charts = {};
         let rawData = [];
+        let filteredData = [];
+        let allAreas = [];
+        let currentPeriod = "";
+        let isAllAreasSelected = false;
+        
+        // Update waktu terakhir
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const formattedDate = now.toLocaleDateString('id-ID', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            });
+            const formattedTime = now.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            document.getElementById('last-update-time').textContent = `${formattedDate} ${formattedTime}`;
+        }
+        
+        // Toggle sidebar di mobile
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+        
+        // Toggle filter content
+        function toggleFilter(filterId) {
+            const filterContent = document.getElementById(filterId);
+            filterContent.style.display = filterContent.style.display === 'none' ? 'block' : 'none';
+        }
         
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('excel-file');
             const uploadArea = document.getElementById('upload-area');
+            
+            // Update waktu terakhir
+            updateLastUpdateTime();
             
             // Event listener untuk upload file
             if (fileInput) {
@@ -450,6 +721,7 @@
                         hideUploadArea();
                         hideLoading();
                         document.getElementById('dashboard-content').style.display = 'block';
+                        updateLastUpdateTime();
                     }, 1500);
                 })
                 .catch(error => {
@@ -481,17 +753,8 @@
                         if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1'].v;
                         if (worksheet['B1'] && worksheet['B1'].v) period = worksheet['B1'].v;
                         
+                        currentPeriod = period;
                         document.getElementById('period-value').textContent = period;
-                        
-                        // Debug: Tampilkan semua header kolom
-                        const range = XLSX.utils.decode_range(worksheet['!ref']);
-                        let headers = [];
-                        for (let C = range.s.c; C <= range.e.c; ++C) {
-                            const cell = worksheet[XLSX.utils.encode_cell({c: C, r: 0})];
-                            headers.push(cell ? cell.v : '');
-                        }
-                        
-                        debugLog('Headers found: ' + JSON.stringify(headers, null, 2));
                         
                         resolve(jsonData);
                     } catch (error) {
@@ -558,17 +821,13 @@
             
             // Simpan data mentah untuk debugging
             rawData = data;
-            
-            // Debug: Tampilkan data mentah di console
-            console.log("Data mentah dari Excel:", data);
-            debugLog('Raw data sample: ' + JSON.stringify(data[0], null, 2));
+            filteredData = data;
             
             // Normalisasi data
             const normalizedData = normalizeData(data);
             
-            // Debug: Tampilkan data yang sudah dinormalisasi di console
-            console.log("Data setelah normalisasi:", normalizedData);
-            debugLog('Normalized data sample: ' + JSON.stringify(normalizedData[0], null, 2));
+            // Ekstrak daftar area unik untuk filter
+            extractAreas(normalizedData);
             
             // Tampilkan preview data
             showDataPreview(normalizedData);
@@ -578,15 +837,13 @@
         }
         
         function normalizeData(data) {
-            // Implementasi normalisasi data
-            // Menyamakan penulisan kolom tanpa memperdulikan huruf besar/kecil dan spasi
             const normalized = [];
             
             data.forEach(row => {
                 const normalizedRow = {};
                 for (const key in row) {
                     if (row.hasOwnProperty(key)) {
-                        // Normalisasi nama kolom - lebih fleksibel
+                        // Normalisasi nama kolom
                         const normalizedKey = key.trim().toLowerCase()
                             .replace(/\s+/g, '')     // Hapus semua spasi
                             .replace(/%/g, 'percent') // Ganti % dengan percent
@@ -603,26 +860,104 @@
             return normalized;
         }
         
+        function extractAreas(data) {
+            const areaSet = new Set();
+            
+            data.forEach(row => {
+                const area = getValue(row, ['area']) || '';
+                if (area) areaSet.add(area);
+            });
+            
+            allAreas = Array.from(areaSet).sort();
+            populateAreaFilter(allAreas);
+        }
+        
+        function populateAreaFilter(areas) {
+            const container = document.getElementById('area-checkboxes');
+            container.innerHTML = '';
+            
+            areas.forEach(area => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" id="area-${area}" name="area" value="${area}" checked>
+                    <label for="area-${area}">${area}</label>
+                `;
+                container.appendChild(div);
+            });
+            
+            // Set select all sebagai checked
+            document.getElementById('select-all-areas').checked = true;
+            isAllAreasSelected = true;
+        }
+        
+        function toggleAllAreas(checked) {
+            const checkboxes = document.querySelectorAll('input[name="area"]');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = checked;
+            });
+            isAllAreasSelected = checked;
+            
+            // Terapkan filter secara otomatis ketika memilih select all
+            applyAreaFilter();
+        }
+        
+        function applyAreaFilter() {
+            const selectedAreas = [];
+            const checkboxes = document.querySelectorAll('input[name="area"]:checked');
+            
+            checkboxes.forEach(checkbox => {
+                selectedAreas.push(checkbox.value);
+            });
+            
+            // Jika semua area dipilih atau tidak ada area yang dipilih (select all)
+            if (selectedAreas.length === allAreas.length || selectedAreas.length === 0) {
+                filteredData = rawData;
+                isAllAreasSelected = true;
+            } else {
+                // Filter data berdasarkan area yang dipilih
+                filteredData = rawData.filter(row => {
+                    const area = getValue(row, ['area']) || '';
+                    return selectedAreas.includes(area);
+                });
+                isAllAreasSelected = false;
+            }
+            
+            // Ubah layout chart jika select all dipilih
+            const chartsContainer = document.getElementById('charts-container');
+            if (isAllAreasSelected) {
+                chartsContainer.classList.add('vertical');
+            } else {
+                chartsContainer.classList.remove('vertical');
+            }
+            
+            // Normalisasi data yang sudah difilter
+            const normalizedData = normalizeData(filteredData);
+            
+            // Update tampilan
+            showDataPreview(normalizedData);
+            updateDashboard(normalizedData);
+        }
+        
+        function applyPeriodFilter() {
+            // Implementasi filter periode berdasarkan tanggal
+            // Di sini kita hanya akan mensimulasikan
+            alert('Filter periode diterapkan. Dalam implementasi nyata, ini akan memfilter data berdasarkan tanggal.');
+        }
+        
         function showDataPreview(data) {
             const previewBody = document.getElementById('preview-body');
             previewBody.innerHTML = '';
             
-            // Tampilkan maksimal 10 baris
-            const previewData = data.slice(0, 10);
-            
-            if (previewData.length === 0) {
+            if (data.length === 0) {
                 previewBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Tidak ada data untuk ditampilkan</td></tr>';
                 return;
             }
             
-            previewData.forEach(row => {
+            data.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                // Debug: Tampilkan semua key yang tersedia
-                const keys = Object.keys(row);
-                debugLog('Available keys in row: ' + keys.join(', '));
-                
-                // Ambil nilai dari kolom yang dinormalisasi dengan berbagai variasi nama
+                // Ambil nilai dari kolom
                 const area = getValue(row, ['area']) || 'N/A';
                 const plant = getValue(row, ['plantname', 'plant']) || 'N/A';
                 const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
@@ -633,14 +968,14 @@
                 const actual = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
                 
                 tr.innerHTML = `
+                    <td>${currentPeriod}</td>
                     <td>${area}</td>
                     <td>${plant}</td>
                     <td>${target.toLocaleString('id-ID')}</td>
                     <td>${mtdVol.toLocaleString('id-ID')}</td>
-                    <td>${percent.toFixed(1)}%</td>
-                    <td>${avgVol.toLocaleString('id-ID')}</td>
+                    <td class="percentage-cell">${percent.toFixed(2)}%</td>
                     <td>${rmc.toLocaleString('id-ID')}</td>
-                    <td>${actual.toFixed(1)}%</td>
+                    <td class="percentage-cell">${actual.toFixed(2)}%</td>
                 `;
                 
                 previewBody.appendChild(tr);
@@ -651,11 +986,9 @@
         function getValue(row, possibleKeys) {
             for (const key of possibleKeys) {
                 if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
-                    debugLog(`Found value for ${key}: ${row[key]}`);
                     return row[key];
                 }
             }
-            debugLog(`No value found for keys: ${possibleKeys.join(', ')}`);
             return '';
         }
         
@@ -769,8 +1102,8 @@
             const avgTargetPercent = count > 0 ? (totalTargetPercent / count) : 0;
             const avgActualSupply = count > 0 ? (totalActualSupply / count) : 0;
             
-            document.getElementById('target-percent').textContent = `${avgTargetPercent.toFixed(1)}%`;
-            document.getElementById('supply-percent').textContent = `${avgActualSupply.toFixed(1)}%`;
+            document.getElementById('target-percent').textContent = `${avgTargetPercent.toFixed(2)}%`;
+            document.getElementById('supply-percent').textContent = `${avgActualSupply.toFixed(2)}%`;
             
             // Update gauge charts
             updateGaugeChart('targetGauge', avgTargetPercent);
@@ -891,6 +1224,23 @@
                 
                 charts[chartId].update();
             }
+        }
+        
+        function exportToExcel() {
+            if (filteredData.length === 0) {
+                alert('Tidak ada data untuk diexport');
+                return;
+            }
+            
+            // Buat worksheet dari data
+            const ws = XLSX.utils.json_to_sheet(filteredData);
+            
+            // Buat workbook dan tambahkan worksheet
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Production Data");
+            
+            // Export ke file Excel
+            XLSX.writeFile(wb, "production_data.xlsx");
         }
     </script>
 </body>
