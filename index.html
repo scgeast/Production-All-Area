@@ -217,6 +217,36 @@
             display: none;
         }
         
+        .debug-panel {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 0.9rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .debug-toggle {
+            background-color: #4a6491;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
+        .sample-data {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #e8f4f8;
+            border-radius: 8px;
+            border-left: 4px solid #4e73df;
+        }
+        
         @media (max-width: 1200px) {
             .charts-container {
                 grid-template-columns: 1fr;
@@ -245,6 +275,22 @@
         
         <div class="error-message" id="error-message"></div>
         
+        <div class="sample-data">
+            <h3>Struktur Data Excel yang Diperlukan:</h3>
+            <p>File Excel harus memiliki kolom dengan nama berikut (case insensitive):</p>
+            <ul>
+                <li><strong>Area</strong> - Nama area produksi</li>
+                <li><strong>Plant Name</strong> atau <strong>Plant</strong> - Nama plant</li>
+                <li><strong>ANN FM Target</strong> atau <strong>ANN FM</strong> - Target produksi</li>
+                <li><strong>MTD VOL</strong> atau <strong>MTD Volume</strong> - Volume produksi bulan ini</li>
+                <li><strong>% of Target</strong> atau <strong>% of MTD Vol Target</strong> - Persentase pencapaian target</li>
+                <li><strong>Avg Vol.Day</strong> atau <strong>AvgVolDay</strong> atau <strong>Avg Prog.TGVol.Day</strong> - Rata-rata volume harian</li>
+                <li><strong>RMC Schedule</strong> - Jadwal RMC</li>
+                <li><strong>Actual Supply</strong> atau <strong>% Actual Supply</strong> - Pasokan aktual</li>
+            </ul>
+            <p>Baris pertama dapat berisi judul laporan atau periode data.</p>
+        </div>
+        
         <div class="upload-container" id="upload-container">
             <input type="file" id="excel-file" accept=".xlsx, .xls">
             <div id="upload-area">
@@ -260,6 +306,12 @@
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Memproses data...</p>
+        </div>
+        
+        <button class="debug-toggle" onclick="toggleDebug()">Toggle Debug Info</button>
+        <div class="debug-panel" id="debug-panel" style="display: none;">
+            <h4>Debug Information:</h4>
+            <pre id="debug-output"></pre>
         </div>
         
         <div id="dashboard-content" style="display: none;">
@@ -497,6 +549,16 @@
             document.getElementById('upload-container').style.display = 'none';
         }
         
+        function toggleDebug() {
+            const debugPanel = document.getElementById('debug-panel');
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function debugLog(message) {
+            const debugOutput = document.getElementById('debug-output');
+            debugOutput.textContent += message + '\n';
+        }
+        
         function processData(data) {
             if (!data || data.length === 0) {
                 showError('Tidak ada data yang ditemukan dalam file');
@@ -505,12 +567,14 @@
             
             // Debug: Tampilkan data mentah di console
             console.log("Data mentah dari Excel:", data);
+            debugLog("Data mentah dari Excel: " + JSON.stringify(data, null, 2));
             
             // Normalisasi data
             const normalizedData = normalizeData(data);
             
             // Debug: Tampilkan data yang sudah dinormalisasi di console
             console.log("Data setelah normalisasi:", normalizedData);
+            debugLog("Data setelah normalisasi: " + JSON.stringify(normalizedData, null, 2));
             
             // Tampilkan preview data
             showDataPreview(normalizedData);
@@ -529,7 +593,16 @@
                 for (const key in row) {
                     if (row.hasOwnProperty(key)) {
                         // Normalisasi nama kolom
-                        const normalizedKey = key.trim().toLowerCase().replace(/[/\s+]/g, '');
+                        const normalizedKey = key.trim().toLowerCase()
+                            .replace(/\s+/g, '')
+                            .replace(/[^a-z0-9]/g, '')
+                            .replace('plantname', 'plant')
+                            .replace('annfmtarget', 'annfm')
+                            .replace('mtdvol', 'mtdvolume')
+                            .replace('oftarget', 'targetpercent')
+                            .replace('avgvolday', 'avgvolday')
+                            .replace('actualsupply', 'supplypercent');
+                        
                         normalizedRow[normalizedKey] = row[key];
                     }
                 }
@@ -556,16 +629,17 @@
                 
                 // Debug: Tampilkan semua key yang tersedia
                 console.log("Keys dalam row:", Object.keys(row));
+                debugLog("Keys dalam row: " + Object.keys(row).join(', '));
                 
                 // Ambil nilai dari kolom yang dinormalisasi dengan berbagai variasi nama
                 const area = row['area'] || 'N/A';
-                const plant = row['plantname'] || row['plant'] || 'N/A';
-                const target = parseIndonesianNumber(row['annfmtarget'] || row['annfm'] || 0);
-                const mtdVol = parseIndonesianNumber(row['mtdvol'] || row['mtdvolume'] || 0);
-                const percent = parseIndonesianNumber((row['%oftarget'] || row['%ofmtdvoltarget'] || '0').toString().replace('%', ''));
-                const avgVol = parseIndonesianNumber(row['avgvol.day'] || row['avgvolday'] || row['avgprog.tgvol.day'] || 0);
+                const plant = row['plant'] || 'N/A';
+                const target = parseIndonesianNumber(row['annfm'] || 0);
+                const mtdVol = parseIndonesianNumber(row['mtdvolume'] || 0);
+                const percent = parseIndonesianNumber(row['targetpercent'] || 0);
+                const avgVol = parseIndonesianNumber(row['avgvolday'] || 0);
                 const rmc = parseIndonesianNumber(row['rmcschedule'] || 0);
-                const actual = parseIndonesianNumber((row['actualsupply'] || row['%actualsupply'] || '0').toString().replace('%', ''));
+                const actual = parseIndonesianNumber(row['supplypercent'] || 0);
                 
                 tr.innerHTML = `
                     <td>${area}</td>
@@ -644,6 +718,10 @@
                 return;
             }
             
+            // Debug: Tampilkan data yang akan diproses
+            console.log("Data untuk updateDashboard:", data);
+            debugLog("Data untuk updateDashboard: " + JSON.stringify(data, null, 2));
+            
             // Hitung nilai KPI
             const areas = new Set();
             const plants = new Set();
@@ -653,9 +731,9 @@
             
             data.forEach(row => {
                 const area = row['area'] || '';
-                const plant = row['plantname'] || row['plant'] || '';
-                const target = parseIndonesianNumber(row['annfmtarget'] || row['annfm'] || 0);
-                const mtdVol = parseIndonesianNumber(row['mtdvol'] || row['mtdvolume'] || 0);
+                const plant = row['plant'] || '';
+                const target = parseIndonesianNumber(row['annfm'] || 0);
+                const mtdVol = parseIndonesianNumber(row['mtdvolume'] || 0);
                 const rmcSchedule = parseIndonesianNumber(row['rmcschedule'] || 0);
                 
                 if (area) areas.add(area);
@@ -684,7 +762,7 @@
             const plantData = {};
             
             data.forEach(row => {
-                const plant = row['plantname'] || row['plant'] || 'Unknown';
+                const plant = row['plant'] || 'Unknown';
                 if (!plantData[plant]) {
                     plantData[plant] = {
                         target: 0,
@@ -697,12 +775,12 @@
                     };
                 }
                 
-                const target = parseIndonesianNumber(row['annfmtarget'] || row['annfm'] || 0);
-                const mtdVol = parseIndonesianNumber(row['mtdvol'] || row['mtdvolume'] || 0);
-                const targetPercent = parseIndonesianNumber((row['%oftarget'] || row['%ofmtdvoltarget'] || '0').toString().replace('%', ''));
-                const avgVolDay = parseIndonesianNumber(row['avgvol.day'] || row['avgvolday'] || row['avgprog.tgvol.day'] || 0);
+                const target = parseIndonesianNumber(row['annfm'] || 0);
+                const mtdVol = parseIndonesianNumber(row['mtdvolume'] || 0);
+                const targetPercent = parseIndonesianNumber(row['targetpercent'] || 0);
+                const avgVolDay = parseIndonesianNumber(row['avgvolday'] || 0);
                 const rmcSchedule = parseIndonesianNumber(row['rmcschedule'] || 0);
-                const actualSupply = parseIndonesianNumber((row['actualsupply'] || row['%actualsupply'] || '0').toString().replace('%', ''));
+                const actualSupply = parseIndonesianNumber(row['supplypercent'] || 0);
                 
                 plantData[plant].target += isNaN(target) ? 0 : target;
                 plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
@@ -719,6 +797,10 @@
                 showError('Tidak ada data plant yang valid untuk ditampilkan');
                 return;
             }
+            
+            // Debug: Tampilkan data plant
+            console.log("Data plant:", plantData);
+            debugLog("Data plant: " + JSON.stringify(plantData, null, 2));
             
             // Update chart data
             updateChartData('volumeTargetChart', plantNames, 
@@ -796,6 +878,51 @@
                 charts[chartId].update();
             }
         }
+        
+        // Fungsi untuk membuat data contoh (hanya untuk testing)
+        function createSampleData() {
+            return [
+                {
+                    "Area": "Jawa Barat",
+                    "Plant Name": "Plant A",
+                    "ANN FM Target": "1.000.000",
+                    "MTD VOL": "850.000",
+                    "% of Target": "85%",
+                    "Avg Vol.Day": "28.333",
+                    "RMC Schedule": "900.000",
+                    "Actual Supply": "94%"
+                },
+                {
+                    "Area": "Jawa Barat",
+                    "Plant Name": "Plant B",
+                    "ANN FM Target": "1.200.000",
+                    "MTD VOL": "1.050.000",
+                    "% of Target": "87,5%",
+                    "Avg Vol.Day": "35.000",
+                    "RMC Schedule": "1.100.000",
+                    "Actual Supply": "95%"
+                },
+                {
+                    "Area": "Jawa Timur",
+                    "Plant Name": "Plant C",
+                    "ANN FM Target": "800.000",
+                    "MTD VOL": "720.000",
+                    "% of Target": "90%",
+                    "Avg Vol.Day": "24.000",
+                    "RMC Schedule": "750.000",
+                    "Actual Supply": "96%"
+                }
+            ];
+        }
+        
+        // Untuk testing: uncomment baris berikut untuk menggunakan data contoh
+        // document.addEventListener('DOMContentLoaded', function() {
+        //     const sampleData = createSampleData();
+        //     processData(sampleData);
+        //     hideUploadArea();
+        //     document.getElementById('dashboard-content').style.display = 'block';
+        //     document.getElementById('period-value').textContent = "Contoh Data - September 2023";
+        // });
     </script>
 </body>
 </html>
