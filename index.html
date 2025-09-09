@@ -217,6 +217,25 @@
             display: none;
         }
         
+        .debug-panel {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .debug-toggle {
+            background: #4a6491;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        
         @media (max-width: 1200px) {
             .charts-container {
                 grid-template-columns: 1fr;
@@ -260,6 +279,12 @@
         <div class="loading" id="loading">
             <div class="spinner"></div>
             <p>Memproses data...</p>
+        </div>
+        
+        <button class="debug-toggle" onclick="toggleDebug()">Toggle Debug Info</button>
+        <div class="debug-panel" id="debug-panel">
+            <h3>Debug Information</h3>
+            <pre id="debug-output"></pre>
         </div>
         
         <div id="dashboard-content" style="display: none;">
@@ -351,6 +376,7 @@
     <script>
         // Inisialisasi variabel global untuk chart
         let charts = {};
+        let rawData = [];
         
         document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('excel-file');
@@ -383,6 +409,16 @@
             // Inisialisasi chart dengan data kosong
             initializeCharts();
         });
+        
+        function toggleDebug() {
+            const debugPanel = document.getElementById('debug-panel');
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        function debugLog(message) {
+            const debugOutput = document.getElementById('debug-output');
+            debugOutput.textContent += message + '\n';
+        }
         
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -447,6 +483,16 @@
                         
                         document.getElementById('period-value').textContent = period;
                         
+                        // Debug: Tampilkan semua header kolom
+                        const range = XLSX.utils.decode_range(worksheet['!ref']);
+                        let headers = [];
+                        for (let C = range.s.c; C <= range.e.c; ++C) {
+                            const cell = worksheet[XLSX.utils.encode_cell({c: C, r: 0})];
+                            headers.push(cell ? cell.v : '');
+                        }
+                        
+                        debugLog('Headers found: ' + JSON.stringify(headers, null, 2));
+                        
                         resolve(jsonData);
                     } catch (error) {
                         reject(error);
@@ -464,15 +510,22 @@
         // Fungsi untuk mengonversi format angka Indonesia ke format JavaScript
         function parseIndonesianNumber(value) {
             if (typeof value === 'number') return value;
-            if (typeof value !== 'string') return 0;
-            
-            // Hapus semua titik (pemisah ribuan) dan ganti koma dengan titik (desimal)
-            const cleanedValue = value.replace(/\./g, '').replace(',', '.');
-            
-            // Hapus karakter non-angka kecuali titik desimal
-            const numericValue = cleanedValue.replace(/[^\d.]/g, '');
-            
-            return parseFloat(numericValue) || 0;
+            if (typeof value === 'string') {
+                // Hapus semua karakter non-numerik kecuali koma dan titik
+                let cleanedValue = value.replace(/[^\d,.-]/g, '');
+                
+                // Jika menggunakan koma sebagai desimal, ganti dengan titik
+                if (cleanedValue.includes(',') && !cleanedValue.includes('.')) {
+                    cleanedValue = cleanedValue.replace(',', '.');
+                }
+                
+                // Hapus semua pemisah ribuan (titik) jika ada
+                cleanedValue = cleanedValue.replace(/\./g, '');
+                
+                const result = parseFloat(cleanedValue);
+                return isNaN(result) ? 0 : result;
+            }
+            return 0;
         }
         
         function showError(message) {
@@ -503,14 +556,19 @@
                 return;
             }
             
+            // Simpan data mentah untuk debugging
+            rawData = data;
+            
             // Debug: Tampilkan data mentah di console
             console.log("Data mentah dari Excel:", data);
+            debugLog('Raw data sample: ' + JSON.stringify(data[0], null, 2));
             
             // Normalisasi data
             const normalizedData = normalizeData(data);
             
             // Debug: Tampilkan data yang sudah dinormalisasi di console
             console.log("Data setelah normalisasi:", normalizedData);
+            debugLog('Normalized data sample: ' + JSON.stringify(normalizedData[0], null, 2));
             
             // Tampilkan preview data
             showDataPreview(normalizedData);
@@ -528,8 +586,14 @@
                 const normalizedRow = {};
                 for (const key in row) {
                     if (row.hasOwnProperty(key)) {
-                        // Normalisasi nama kolom
-                        const normalizedKey = key.trim().toLowerCase().replace(/[/\s+]/g, '');
+                        // Normalisasi nama kolom - lebih fleksibel
+                        const normalizedKey = key.trim().toLowerCase()
+                            .replace(/\s+/g, '')     // Hapus semua spasi
+                            .replace(/%/g, 'percent') // Ganti % dengan percent
+                            .replace(/\//g, '')       // Hapus slash
+                            .replace(/\./g, '')       // Hapus titik
+                            .replace('-', '');        // Hapus dash
+                        
                         normalizedRow[normalizedKey] = row[key];
                     }
                 }
@@ -555,31 +619,55 @@
                 const tr = document.createElement('tr');
                 
                 // Debug: Tampilkan semua key yang tersedia
-                console.log("Keys dalam row:", Object.keys(row));
+                const keys = Object.keys(row);
+                debugLog('Available keys in row: ' + keys.join(', '));
                 
                 // Ambil nilai dari kolom yang dinormalisasi dengan berbagai variasi nama
-                const area = row['area'] || 'N/A';
-                const plant = row['plantname'] || row['plant'] || 'N/A';
-                const target = parseIndonesianNumber(row['annfmtarget'] || row['annfm'] || 0);
-                const mtdVol = parseIndonesianNumber(row['mtdvol'] || row['mtdvolume'] || 0);
-                const percent = parseIndonesianNumber((row['%oftarget'] || row['%ofmtdvoltarget'] || '0').toString().replace('%', ''));
-                const avgVol = parseIndonesianNumber(row['avgvol.day'] || row['avgvolday'] || row['avgprog.tgvol.day'] || 0);
-                const rmc = parseIndonesianNumber(row['rmcschedule'] || 0);
-                const actual = parseIndonesianNumber((row['actualsupply'] || row['%actualsupply'] || '0').toString().replace('%', ''));
+                const area = getValue(row, ['area']) || 'N/A';
+                const plant = getValue(row, ['plantname', 'plant']) || 'N/A';
+                const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
+                const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
+                const percent = parseIndonesianNumber(extractPercentage(getValue(row, ['percentoftarget', 'oftarget', 'targetpercent'])));
+                const avgVol = parseIndonesianNumber(getValue(row, ['avgvolday', 'avgvolume', 'average']));
+                const rmc = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
+                const actual = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
                 
                 tr.innerHTML = `
                     <td>${area}</td>
                     <td>${plant}</td>
                     <td>${target.toLocaleString('id-ID')}</td>
                     <td>${mtdVol.toLocaleString('id-ID')}</td>
-                    <td>${percent}%</td>
+                    <td>${percent.toFixed(1)}%</td>
                     <td>${avgVol.toLocaleString('id-ID')}</td>
                     <td>${rmc.toLocaleString('id-ID')}</td>
-                    <td>${actual}%</td>
+                    <td>${actual.toFixed(1)}%</td>
                 `;
                 
                 previewBody.appendChild(tr);
             });
+        }
+        
+        // Helper function untuk mendapatkan nilai dari berbagai kemungkinan key
+        function getValue(row, possibleKeys) {
+            for (const key of possibleKeys) {
+                if (row[key] !== undefined && row[key] !== null && row[key] !== '') {
+                    debugLog(`Found value for ${key}: ${row[key]}`);
+                    return row[key];
+                }
+            }
+            debugLog(`No value found for keys: ${possibleKeys.join(', ')}`);
+            return '';
+        }
+        
+        // Helper function untuk mengekstrak nilai persentase
+        function extractPercentage(value) {
+            if (typeof value === 'string') {
+                // Jika sudah mengandung %, hapus % dan konversi ke angka
+                if (value.includes('%')) {
+                    return value.replace('%', '');
+                }
+            }
+            return value;
         }
         
         function initializeCharts() {
@@ -650,13 +738,18 @@
             let totalTarget = 0;
             let totalMtdVol = 0;
             let totalRmcSchedule = 0;
+            let totalTargetPercent = 0;
+            let totalActualSupply = 0;
+            let count = 0;
             
             data.forEach(row => {
-                const area = row['area'] || '';
-                const plant = row['plantname'] || row['plant'] || '';
-                const target = parseIndonesianNumber(row['annfmtarget'] || row['annfm'] || 0);
-                const mtdVol = parseIndonesianNumber(row['mtdvol'] || row['mtdvolume'] || 0);
-                const rmcSchedule = parseIndonesianNumber(row['rmcschedule'] || 0);
+                const area = getValue(row, ['area']) || '';
+                const plant = getValue(row, ['plantname', 'plant']) || '';
+                const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
+                const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
+                const rmcSchedule = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
+                const targetPercent = parseIndonesianNumber(extractPercentage(getValue(row, ['percentoftarget', 'oftarget', 'targetpercent'])));
+                const actualSupply = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
                 
                 if (area) areas.add(area);
                 if (plant) plants.add(plant);
@@ -664,27 +757,30 @@
                 totalTarget += isNaN(target) ? 0 : target;
                 totalMtdVol += isNaN(mtdVol) ? 0 : mtdVol;
                 totalRmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
+                totalTargetPercent += isNaN(targetPercent) ? 0 : targetPercent;
+                totalActualSupply += isNaN(actualSupply) ? 0 : actualSupply;
+                count++;
             });
             
             // Update KPI
             document.getElementById('total-area').textContent = areas.size;
             document.getElementById('total-plant').textContent = plants.size;
             
-            const targetPercent = totalTarget > 0 ? (totalMtdVol / totalTarget * 100).toFixed(1) : 0;
-            const supplyPercent = totalRmcSchedule > 0 ? (totalMtdVol / totalRmcSchedule * 100).toFixed(1) : 0;
+            const avgTargetPercent = count > 0 ? (totalTargetPercent / count) : 0;
+            const avgActualSupply = count > 0 ? (totalActualSupply / count) : 0;
             
-            document.getElementById('target-percent').textContent = `${targetPercent}%`;
-            document.getElementById('supply-percent').textContent = `${supplyPercent}%`;
+            document.getElementById('target-percent').textContent = `${avgTargetPercent.toFixed(1)}%`;
+            document.getElementById('supply-percent').textContent = `${avgActualSupply.toFixed(1)}%`;
             
             // Update gauge charts
-            updateGaugeChart('targetGauge', targetPercent);
-            updateGaugeChart('supplyGauge', supplyPercent);
+            updateGaugeChart('targetGauge', avgTargetPercent);
+            updateGaugeChart('supplyGauge', avgActualSupply);
             
             // Siapkan data untuk chart berdasarkan plant
             const plantData = {};
             
             data.forEach(row => {
-                const plant = row['plantname'] || row['plant'] || 'Unknown';
+                const plant = getValue(row, ['plantname', 'plant']) || 'Unknown';
                 if (!plantData[plant]) {
                     plantData[plant] = {
                         target: 0,
@@ -697,12 +793,12 @@
                     };
                 }
                 
-                const target = parseIndonesianNumber(row['annfmtarget'] || row['annfm'] || 0);
-                const mtdVol = parseIndonesianNumber(row['mtdvol'] || row['mtdvolume'] || 0);
-                const targetPercent = parseIndonesianNumber((row['%oftarget'] || row['%ofmtdvoltarget'] || '0').toString().replace('%', ''));
-                const avgVolDay = parseIndonesianNumber(row['avgvol.day'] || row['avgvolday'] || row['avgprog.tgvol.day'] || 0);
-                const rmcSchedule = parseIndonesianNumber(row['rmcschedule'] || 0);
-                const actualSupply = parseIndonesianNumber((row['actualsupply'] || row['%actualsupply'] || '0').toString().replace('%', ''));
+                const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
+                const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
+                const targetPercent = parseIndonesianNumber(extractPercentage(getValue(row, ['percentoftarget', 'oftarget', 'targetpercent'])));
+                const avgVolDay = parseIndonesianNumber(getValue(row, ['avgvolday', 'avgvolume', 'average']));
+                const rmcSchedule = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
+                const actualSupply = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
                 
                 plantData[plant].target += isNaN(target) ? 0 : target;
                 plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
