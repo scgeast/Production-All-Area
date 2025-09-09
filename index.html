@@ -206,6 +206,16 @@
             background-color: #f9f9f9;
         }
         
+        .error-message {
+            color: #e74a3b;
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #f8d7da;
+            border-radius: 5px;
+            display: none;
+        }
+        
         @media (max-width: 1200px) {
             .charts-container {
                 grid-template-columns: 1fr;
@@ -232,13 +242,16 @@
             <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
         </header>
         
+        <div class="error-message" id="error-message"></div>
+        
         <div class="upload-container" id="upload-container">
-            <input type="file" id="excel-file" accept=".xlsx, .xls" hidden>
+            <input type="file" id="excel-file" accept=".xlsx, .xls">
             <div id="upload-area">
                 <div class="upload-icon">📤</div>
                 <div class="upload-text">
                     <h3>Unggah File Excel</h3>
                     <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
+                    <p><small>Pastikan file memiliki kolom: Area, Plant Name, ANN FM Target, MTD VOL, % of Target, Avg Vol.Day, RMC Schedule, Actual Supply</small></p>
                 </div>
             </div>
         </div>
@@ -317,6 +330,9 @@
                             <th>ANN FM Target</th>
                             <th>MTD VOL</th>
                             <th>% of Target</th>
+                            <th>Avg Vol.Day</th>
+                            <th>RMC Schedule</th>
+                            <th>Actual Supply</th>
                         </tr>
                     </thead>
                     <tbody id="preview-body">
@@ -358,7 +374,7 @@
                     uploadArea.classList.remove('dragover');
                     if (e.dataTransfer.files.length) {
                         fileInput.files = e.dataTransfer.files;
-                        handleFileUpload({ target: { files: e.dataTransfer.files } });
+                        handleFileUpload({ target: fileInput });
                     }
                 });
             }
@@ -372,20 +388,21 @@
             
             if (!file) return;
             
-            // PERUBAHAN DI SINI: Validasi ukuran file (2KB - 30MB)
+            // Validasi ukuran file (2KB - 30MB)
             if (file.size < 2 * 1024 || file.size > 30 * 1024 * 1024) {
-                alert('Ukuran file harus antara 2KB dan 30MB');
+                showError('Ukuran file harus antara 2KB dan 30MB');
                 return;
             }
             
             // Validasi tipe file
             if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-                alert('Hanya file Excel (.xlsx, .xls) yang diperbolehkan');
+                showError('Hanya file Excel (.xlsx, .xls) yang diperbolehkan');
                 return;
             }
             
             // Tampilkan loading indicator
             showLoading();
+            hideError();
             
             // Parse file Excel
             parseExcelFile(file)
@@ -400,7 +417,7 @@
                 })
                 .catch(error => {
                     console.error('Error parsing Excel:', error);
-                    alert('Error parsing file Excel: ' + error.message);
+                    showError('Error parsing file Excel: ' + error.message);
                     hideLoading();
                 });
         }
@@ -412,19 +429,28 @@
                 reader.onload = function(e) {
                     try {
                         const data = e.target.result;
-                        const workbook = XLSX.read(data, { type: 'binary' });
+                        const workbook = XLSX.read(data, { type: 'binary', cellDates: true });
                         
                         // Ambil sheet pertama
                         const firstSheet = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[firstSheet];
                         
                         // Konversi ke JSON
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
                         
-                        // Ambil periode dari sel E1
+                        // Ambil periode dari sel E1 (konversi dari format Excel)
                         let period = "Data tidak ditemukan";
                         if (worksheet['E1']) {
-                            period = worksheet['E1'].v;
+                            const excelDate = worksheet['E1'].v;
+                            if (typeof excelDate === 'number') {
+                                // Konversi dari serial number Excel ke tanggal JavaScript
+                                period = convertExcelDateToJSDate(excelDate).toLocaleDateString('id-ID', {
+                                    year: 'numeric',
+                                    month: 'long'
+                                });
+                            } else {
+                                period = excelDate;
+                            }
                         }
                         
                         document.getElementById('period-value').textContent = period;
@@ -443,6 +469,30 @@
             });
         }
         
+        // Fungsi untuk mengonversi tanggal Excel ke JavaScript Date
+        function convertExcelDateToJSDate(excelDate) {
+            // Excel dates are based on January 1, 1900
+            const excelEpoch = new Date(1900, 0, 1);
+            const jsDate = new Date(excelEpoch.getTime() + (excelDate - 1) * 24 * 60 * 60 * 1000);
+            
+            // Adjust for Excel's leap year bug (it considers 1900 as a leap year)
+            if (excelDate > 59) {
+                jsDate.setTime(jsDate.getTime() - 24 * 60 * 60 * 1000);
+            }
+            
+            return jsDate;
+        }
+        
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+        
         function showLoading() {
             document.getElementById('loading').style.display = 'block';
         }
@@ -456,6 +506,11 @@
         }
         
         function processData(data) {
+            if (!data || data.length === 0) {
+                showError('Tidak ada data yang ditemukan dalam file');
+                return;
+            }
+            
             // Normalisasi data
             const normalizedData = normalizeData(data);
             
@@ -476,7 +531,7 @@
                 for (const key in row) {
                     if (row.hasOwnProperty(key)) {
                         // Normalisasi nama kolom
-                        const normalizedKey = key.trim().toLowerCase().replace(/\s+/g, '');
+                        const normalizedKey = key.trim().toLowerCase().replace(/[/\s+]/g, '');
                         normalizedRow[normalizedKey] = row[key];
                     }
                 }
@@ -493,15 +548,23 @@
             // Tampilkan maksimal 10 baris
             const previewData = data.slice(0, 10);
             
+            if (previewData.length === 0) {
+                previewBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Tidak ada data untuk ditampilkan</td></tr>';
+                return;
+            }
+            
             previewData.forEach(row => {
                 const tr = document.createElement('tr');
                 
-                // Ambil nilai dari kolom yang dinormalisasi
-                const area = row['area'] || row['arearea'] || 'N/A';
-                const plant = row['plant'] || row['plantname'] || 'N/A';
-                const target = row['annfmtarget'] || row['annfmtarget'] || 0;
-                const mtdVol = row['mtdvol'] || row['mtdvolume'] || 0;
-                const percent = row['%oftarget'] || row['%oftarget'] || 0;
+                // Ambil nilai dari kolom yang dinormalisasi dengan berbagai variasi nama
+                const area = row['area'] || 'N/A';
+                const plant = row['plantname'] || row['plant'] || 'N/A';
+                const target = row['annfmtarget'] || 0;
+                const mtdVol = row['mtdvol'] || 0;
+                const percent = row['%oftarget'] || 0;
+                const avgVol = row['avgvol.day'] || row['avgvolday'] || 0;
+                const rmc = row['rmcschedule'] || 0;
+                const actual = row['actualsupply'] || 0;
                 
                 tr.innerHTML = `
                     <td>${area}</td>
@@ -509,6 +572,9 @@
                     <td>${target}</td>
                     <td>${mtdVol}</td>
                     <td>${percent}%</td>
+                    <td>${avgVol}</td>
+                    <td>${rmc}</td>
+                    <td>${actual}%</td>
                 `;
                 
                 previewBody.appendChild(tr);
@@ -572,6 +638,11 @@
         }
         
         function updateDashboard(data) {
+            if (!data || data.length === 0) {
+                showError('Tidak ada data yang valid untuk ditampilkan');
+                return;
+            }
+            
             // Hitung nilai KPI
             const areas = new Set();
             const plants = new Set();
@@ -580,18 +651,18 @@
             let totalRmcSchedule = 0;
             
             data.forEach(row => {
-                const area = row['area'] || row['arearea'] || '';
-                const plant = row['plant'] || row['plantname'] || '';
+                const area = row['area'] || '';
+                const plant = row['plantname'] || row['plant'] || '';
                 const target = parseFloat(row['annfmtarget'] || 0);
-                const mtdVol = parseFloat(row['mtdvol'] || row['mtdvolume'] || 0);
+                const mtdVol = parseFloat(row['mtdvol'] || 0);
                 const rmcSchedule = parseFloat(row['rmcschedule'] || 0);
                 
                 if (area) areas.add(area);
                 if (plant) plants.add(plant);
                 
-                totalTarget += target;
-                totalMtdVol += mtdVol;
-                totalRmcSchedule += rmcSchedule;
+                totalTarget += isNaN(target) ? 0 : target;
+                totalMtdVol += isNaN(mtdVol) ? 0 : mtdVol;
+                totalRmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
             });
             
             // Update KPI
@@ -608,11 +679,11 @@
             updateGaugeChart('targetGauge', targetPercent);
             updateGaugeChart('supplyGauge', supplyPercent);
             
-            // Siapkan data untuk chart
+            // Siapkan data untuk chart berdasarkan plant
             const plantData = {};
             
             data.forEach(row => {
-                const plant = row['plant'] || row['plantname'] || 'Unknown';
+                const plant = row['plantname'] || row['plant'] || 'Unknown';
                 if (!plantData[plant]) {
                     plantData[plant] = {
                         target: 0,
@@ -624,15 +695,27 @@
                     };
                 }
                 
-                plantData[plant].target += parseFloat(row['annfmtarget'] || 0);
-                plantData[plant].mtdVol += parseFloat(row['mtdvol'] || row['mtdvolume'] || 0);
-                plantData[plant].targetPercent += parseFloat(row['%oftarget'] || 0);
-                plantData[plant].avgVolDay += parseFloat(row['avgvol.day'] || 0);
-                plantData[plant].rmcSchedule += parseFloat(row['rmcschedule'] || 0);
-                plantData[plant].actualSupply += parseFloat(row['actualsupply'] || 0);
+                const target = parseFloat(row['annfmtarget'] || 0);
+                const mtdVol = parseFloat(row['mtdvol'] || 0);
+                const targetPercent = parseFloat(row['%oftarget'] || 0);
+                const avgVolDay = parseFloat(row['avgvol.day'] || row['avgvolday'] || 0);
+                const rmcSchedule = parseFloat(row['rmcschedule'] || 0);
+                const actualSupply = parseFloat(row['actualsupply'] || 0);
+                
+                plantData[plant].target += isNaN(target) ? 0 : target;
+                plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
+                plantData[plant].targetPercent += isNaN(targetPercent) ? 0 : targetPercent;
+                plantData[plant].avgVolDay += isNaN(avgVolDay) ? 0 : avgVolDay;
+                plantData[plant].rmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
+                plantData[plant].actualSupply += isNaN(actualSupply) ? 0 : actualSupply;
             });
             
             const plantNames = Object.keys(plantData);
+            
+            if (plantNames.length === 0) {
+                showError('Tidak ada data plant yang valid untuk ditampilkan');
+                return;
+            }
             
             // Update chart data
             updateChartData('volumeTargetChart', plantNames, 
