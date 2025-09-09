@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PRODUCTION ALL AREA</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-gauge-chart"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7f9;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #2c3e50 0%, #4a6491 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .period {
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+        
+        .kpi-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .kpi-title {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .gauge-container {
+            height: 150px;
+            position: relative;
+        }
+        
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 30px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 1200px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .kpi-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .kpi-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PRODUCTION ALL AREA</h1>
+            <div class="period">Periode: September 2023</div>
+        </header>
+        
+        <div class="kpi-container">
+            <div class="kpi-card">
+                <div class="kpi-title">Total Area</div>
+                <div class="kpi-value">5</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Total Plant</div>
+                <div class="kpi-value">12</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">% of Target</div>
+                <div class="kpi-value">87.4%</div>
+                <div class="gauge-container">
+                    <canvas id="targetGauge"></canvas>
+                </div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">% Actual Supply</div>
+                <div class="kpi-value">92.6%</div>
+                <div class="gauge-container">
+                    <canvas id="supplyGauge"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="charts-container">
+            <div class="chart-card">
+                <div class="chart-title">MTD VOL vs ANN FM Target per Plant</div>
+                <div class="chart-container">
+                    <canvas id="volumeTargetChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">% of Target per Plant</div>
+                <div class="chart-container">
+                    <canvas id="targetPercentChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">Avg Vol. Day per Plant</div>
+                <div class="chart-container">
+                    <canvas id="avgVolumeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
+                <div class="chart-container">
+                    <canvas id="rmcVolumeChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">% Actual Supply per Plant</div>
+                <div class="chart-container">
+                    <canvas id="supplyPercentChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            Production All Area by L=23-51Xe
+        </footer>
+    </div>
+
+    <script>
+        // Data contoh (akan diganti dengan data dari Excel)
+        const plants = ['Plant A', 'Plant B', 'Plant C', 'Plant D', 'Plant E', 'Plant F'];
+        const mtdVol = [12500, 9800, 15600, 11200, 8700, 14300];
+        const annFmTarget = [13000, 10000, 15000, 11000, 9000, 14000];
+        const targetPercent = [96.2, 98.0, 104.0, 101.8, 96.7, 102.1];
+        const avgVolDay = [416, 326, 520, 373, 290, 476];
+        const rmcSchedule = [12000, 9500, 14800, 10800, 8900, 13800];
+        const actualSupply = [94.5, 97.2, 105.0, 103.2, 97.8, 103.4];
+        
+        // Warna untuk chart
+        const colors = {
+            bar: 'rgba(54, 162, 235, 0.7)',
+            line: 'rgba(255, 99, 132, 1)',
+            targetLine: 'rgba(100, 100, 100, 1)',
+            area: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796']
+        };
+        
+        // Inisialisasi gauge chart untuk % of Target
+        const targetGaugeCtx = document.getElementById('targetGauge').getContext('2d');
+        new Chart(targetGaugeCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [87.4, 100 - 87.4],
+                    backgroundColor: ['#4e73df', '#e0e0e0'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }
+        });
+        
+        // Inisialisasi gauge chart untuk % Actual Supply
+        const supplyGaugeCtx = document.getElementById('supplyGauge').getContext('2d');
+        new Chart(supplyGaugeCtx, {
+            type: 'doughnut',
+            data: {
+                datasets: [{
+                    data: [92.6, 100 - 92.6],
+                    backgroundColor: ['#1cc88a', '#e0e0e0'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            }
+        });
+        
+        // Chart MTD VOL vs ANN FM Target
+        const volumeTargetCtx = document.getElementById('volumeTargetChart').getContext('2d');
+        new Chart(volumeTargetCtx, {
+            type: 'bar',
+            data: {
+                labels: plants,
+                datasets: [
+                    {
+                        label: 'MTD VOL',
+                        data: mtdVol,
+                        backgroundColor: colors.bar,
+                        order: 2
+                    },
+                    {
+                        label: 'ANN FM Target',
+                        data: annFmTarget,
+                        borderColor: colors.targetLine,
+                        backgroundColor: 'transparent',
+                        type: 'line',
+                        borderWidth: 2,
+                        pointStyle: 'rectRounded',
+                        pointRadius: 5,
+                        pointBorderColor: colors.targetLine,
+                        pointBackgroundColor: 'white',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart % of Target
+        const targetPercentCtx = document.getElementById('targetPercentChart').getContext('2d');
+        new Chart(targetPercentCtx, {
+            type: 'bar',
+            data: {
+                labels: plants,
+                datasets: [{
+                    label: '% of Target',
+                    data: targetPercent,
+                    backgroundColor: colors.area,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 120,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart Avg Vol. Day
+        const avgVolumeCtx = document.getElementById('avgVolumeChart').getContext('2d');
+        new Chart(avgVolumeCtx, {
+            type: 'line',
+            data: {
+                labels: plants,
+                datasets: [{
+                    label: 'Avg Vol. Day',
+                    data: avgVolDay,
+                    borderColor: colors.line,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume per Day'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart RMC Schedule vs MTD VOL
+        const rmcVolumeCtx = document.getElementById('rmcVolumeChart').getContext('2d');
+        new Chart(rmcVolumeCtx, {
+            type: 'bar',
+            data: {
+                labels: plants,
+                datasets: [
+                    {
+                        label: 'MTD VOL',
+                        data: mtdVol,
+                        backgroundColor: colors.bar,
+                        order: 2
+                    },
+                    {
+                        label: 'RMC Schedule',
+                        data: rmcSchedule,
+                        borderColor: colors.targetLine,
+                        backgroundColor: 'transparent',
+                        type: 'line',
+                        borderWidth: 2,
+                        pointStyle: 'rectRounded',
+                        pointRadius: 5,
+                        pointBorderColor: colors.targetLine,
+                        pointBackgroundColor: 'white',
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Volume'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Chart % Actual Supply
+        const supplyPercentCtx = document.getElementById('supplyPercentChart').getContext('2d');
+        new Chart(supplyPercentCtx, {
+            type: 'bar',
+            data: {
+                labels: plants,
+                datasets: [{
+                    label: '% Actual Supply',
+                    data: actualSupply,
+                    backgroundColor: colors.area,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 120,
+                        title: {
+                            display: true,
+                            text: 'Percentage'
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
