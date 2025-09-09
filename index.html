@@ -7,6 +7,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
+        /* CSS tetap sama seperti sebelumnya */
         * {
             margin: 0;
             padding: 0;
@@ -511,8 +512,14 @@
                 return;
             }
             
+            // Debug: Tampilkan data mentah di console
+            console.log("Data mentah dari Excel:", data);
+            
             // Normalisasi data
             const normalizedData = normalizeData(data);
+            
+            // Debug: Tampilkan data yang sudah dinormalisasi di console
+            console.log("Data setelah normalisasi:", normalizedData);
             
             // Tampilkan preview data
             showDataPreview(normalizedData);
@@ -556,24 +563,27 @@
             previewData.forEach(row => {
                 const tr = document.createElement('tr');
                 
+                // Debug: Tampilkan semua key yang tersedia
+                console.log("Keys dalam row:", Object.keys(row));
+                
                 // Ambil nilai dari kolom yang dinormalisasi dengan berbagai variasi nama
                 const area = row['area'] || 'N/A';
-                const plant = row['plantname'] || row['plant'] || 'N/A';
-                const target = row['annfmtarget'] || 0;
-                const mtdVol = row['mtdvol'] || 0;
-                const percent = row['%oftarget'] || 0;
-                const avgVol = row['avgvol.day'] || row['avgvolday'] || 0;
-                const rmc = row['rmcschedule'] || 0;
-                const actual = row['actualsupply'] || 0;
+                const plant = row['plant'] || row['plantname'] || 'N/A';
+                const target = parseFloat((row['annfmtarget'] || row['annfm'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const mtdVol = parseFloat((row['mtdvol'] || row['mtdvolume'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const percent = parseFloat((row['%oftarget'] || row['%ofmtdvoltarget'] || 0).toString().replace('%', '').replace(',', '.'));
+                const avgVol = parseFloat((row['avgvol.day'] || row['avgvolday'] || row['avgprog.tgvol.day'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const rmc = parseFloat((row['rmcschedule'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const actual = parseFloat((row['actualsupply'] || 0).toString().replace('%', '').replace(',', '.'));
                 
                 tr.innerHTML = `
                     <td>${area}</td>
                     <td>${plant}</td>
-                    <td>${target}</td>
-                    <td>${mtdVol}</td>
+                    <td>${target.toLocaleString('id-ID')}</td>
+                    <td>${mtdVol.toLocaleString('id-ID')}</td>
                     <td>${percent}%</td>
-                    <td>${avgVol}</td>
-                    <td>${rmc}</td>
+                    <td>${avgVol.toLocaleString('id-ID')}</td>
+                    <td>${rmc.toLocaleString('id-ID')}</td>
                     <td>${actual}%</td>
                 `;
                 
@@ -652,10 +662,10 @@
             
             data.forEach(row => {
                 const area = row['area'] || '';
-                const plant = row['plantname'] || row['plant'] || '';
-                const target = parseFloat(row['annfmtarget'] || 0);
-                const mtdVol = parseFloat(row['mtdvol'] || 0);
-                const rmcSchedule = parseFloat(row['rmcschedule'] || 0);
+                const plant = row['plant'] || row['plantname'] || '';
+                const target = parseFloat((row['annfmtarget'] || row['annfm'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const mtdVol = parseFloat((row['mtdvol'] || row['mtdvolume'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const rmcSchedule = parseFloat((row['rmcschedule'] || 0).toString().replace(/\./g, '').replace(',', '.'));
                 
                 if (area) areas.add(area);
                 if (plant) plants.add(plant);
@@ -683,7 +693,7 @@
             const plantData = {};
             
             data.forEach(row => {
-                const plant = row['plantname'] || row['plant'] || 'Unknown';
+                const plant = row['plant'] || row['plantname'] || 'Unknown';
                 if (!plantData[plant]) {
                     plantData[plant] = {
                         target: 0,
@@ -695,12 +705,12 @@
                     };
                 }
                 
-                const target = parseFloat(row['annfmtarget'] || 0);
-                const mtdVol = parseFloat(row['mtdvol'] || 0);
-                const targetPercent = parseFloat(row['%oftarget'] || 0);
-                const avgVolDay = parseFloat(row['avgvol.day'] || row['avgvolday'] || 0);
-                const rmcSchedule = parseFloat(row['rmcschedule'] || 0);
-                const actualSupply = parseFloat(row['actualsupply'] || 0);
+                const target = parseFloat((row['annfmtarget'] || row['annfm'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const mtdVol = parseFloat((row['mtdvol'] || row['mtdvolume'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const targetPercent = parseFloat((row['%oftarget'] || row['%ofmtdvoltarget'] || 0).toString().replace('%', '').replace(',', '.'));
+                const avgVolDay = parseFloat((row['avgvol.day'] || row['avgvolday'] || row['avgprog.tgvol.day'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const rmcSchedule = parseFloat((row['rmcschedule'] || 0).toString().replace(/\./g, '').replace(',', '.'));
+                const actualSupply = parseFloat((row['actualsupply'] || 0).toString().replace('%', '').replace(',', '.'));
                 
                 plantData[plant].target += isNaN(target) ? 0 : target;
                 plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
