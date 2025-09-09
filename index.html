@@ -6,6 +6,8 @@
     <title>PRODUCTION ALL AREA</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -20,6 +22,11 @@
             color: #333;
             padding: 20px;
             display: flex;
+            transition: margin-left 0.3s;
+        }
+        
+        body.sidebar-open {
+            margin-left: 280px;
         }
         
         .container {
@@ -32,21 +39,28 @@
         
         /* Sidebar Filter */
         .sidebar {
+            position: fixed;
+            top: 0;
+            left: -280px;
             width: 280px;
+            height: 100%;
             background: white;
-            border-radius: 10px;
             padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            height: fit-content;
-            flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 1000;
+            transition: left 0.3s;
+        }
+        
+        .sidebar.open {
+            left: 0;
         }
         
         .sidebar-toggle {
-            display: none;
             position: fixed;
             top: 20px;
             left: 20px;
-            z-index: 1000;
+            z-index: 1001;
             background: #4a6491;
             color: white;
             border: none;
@@ -86,7 +100,6 @@
             font-weight: 500;
         }
         
-        .filter-group input,
         .filter-group select {
             width: 100%;
             padding: 10px;
@@ -116,6 +129,7 @@
         /* Main Content */
         .main-content {
             flex-grow: 1;
+            transition: width 0.3s;
         }
         
         header {
@@ -142,6 +156,11 @@
             opacity: 0.9;
         }
         
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
         .export-btn {
             background: #1e7b1e;
             color: white;
@@ -153,6 +172,14 @@
             align-items: center;
             gap: 8px;
             font-size: 0.9rem;
+        }
+        
+        .export-btn.pdf {
+            background: #c62828;
+        }
+        
+        .export-btn.pdf:hover {
+            background: #d32f2f;
         }
         
         .export-btn:hover {
@@ -349,25 +376,6 @@
             display: none;
         }
         
-        .debug-panel {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-            display: none;
-        }
-        
-        .debug-toggle {
-            background: #4a6491;
-            color: white;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-bottom: 10px;
-        }
-        
         @media (max-width: 1200px) {
             .charts-container {
                 grid-template-columns: 1fr;
@@ -376,31 +384,11 @@
             .container {
                 flex-direction: column;
             }
-            
-            .sidebar {
-                width: 100%;
-                margin-bottom: 20px;
-            }
         }
         
         @media (max-width: 992px) {
-            .sidebar {
-                display: none;
-                position: fixed;
-                top: 0;
-                left: 0;
-                height: 100%;
-                z-index: 999;
-                overflow-y: auto;
-                width: 300px;
-            }
-            
-            .sidebar.active {
-                display: block;
-            }
-            
-            .sidebar-toggle {
-                display: block;
+            body.sidebar-open {
+                margin-left: 0;
             }
             
             .header-top {
@@ -412,11 +400,24 @@
             .last-update {
                 text-align: center;
             }
+            
+            .export-buttons {
+                justify-content: center;
+            }
         }
         
         @media (max-width: 768px) {
             .kpi-container {
                 grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .sidebar {
+                width: 250px;
+                left: -250px;
+            }
+            
+            body.sidebar-open {
+                margin-left: 250px;
             }
         }
         
@@ -432,6 +433,10 @@
             h1 {
                 font-size: 1.8rem;
             }
+            
+            .export-buttons {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
@@ -440,175 +445,166 @@
         <i class="fas fa-filter"></i> Filter
     </button>
 
-    <div class="container">
-        <!-- Sidebar Filter -->
-        <div class="sidebar" id="sidebar">
-            <div class="filter-section">
-                <div class="filter-header" onclick="toggleFilter('period-filter')">
-                    <div class="filter-title">Periode (Timeline)</div>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="filter-content" id="period-filter">
-                    <div class="filter-group">
-                        <label for="start-date">Dari Tanggal</label>
-                        <input type="date" id="start-date">
-                    </div>
-                    <div class="filter-group">
-                        <label for="end-date">Sampai Tanggal</label>
-                        <input type="date" id="end-date">
-                    </div>
-                    <button class="export-btn" onclick="applyPeriodFilter()">
-                        <i class="fas fa-check"></i> Terapkan
-                    </button>
-                </div>
+    <div class="sidebar" id="sidebar">
+        <div class="filter-section">
+            <div class="filter-header" onclick="toggleFilter('period-filter')">
+                <div class="filter-title">Periode (Bulan)</div>
+                <i class="fas fa-chevron-down"></i>
             </div>
-            
-            <div class="filter-section">
-                <div class="filter-header" onclick="toggleFilter('area-filter')">
-                    <div class="filter-title">Area</div>
-                    <i class="fas fa-chevron-down"></i>
-                </div>
-                <div class="filter-content" id="area-filter">
-                    <div class="checkbox-item">
-                        <input type="checkbox" id="select-all-areas" onchange="toggleAllAreas(this.checked)">
-                        <label for="select-all-areas">Select All</label>
-                    </div>
-                    <div class="checkbox-group" id="area-checkboxes">
-                        <!-- Area options will be populated here -->
-                    </div>
-                    <button class="export-btn" onclick="applyAreaFilter()">
-                        <i class="fas fa-check"></i> Terapkan
-                    </button>
+            <div class="filter-content" id="period-filter">
+                <div class="filter-group">
+                    <label for="period-select">Pilih Bulan</label>
+                    <select id="period-select" onchange="applyPeriodFilter()">
+                        <option value="all">Semua Bulan</option>
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
                 </div>
             </div>
         </div>
+        
+        <div class="filter-section">
+            <div class="filter-header" onclick="toggleFilter('area-filter')">
+                <div class="filter-title">Area</div>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="area-filter">
+                <div class="checkbox-item">
+                    <input type="checkbox" id="select-all-areas" onchange="toggleAllAreas(this.checked)">
+                    <label for="select-all-areas">Select All</label>
+                </div>
+                <div class="checkbox-group" id="area-checkboxes">
+                    <!-- Area options will be populated here -->
+                </div>
+                <button class="export-btn" onclick="applyAreaFilter()">
+                    <i class="fas fa-check"></i> Terapkan Filter
+                </button>
+            </div>
+        </div>
+    </div>
 
-        <!-- Main Content -->
-        <div class="main-content">
-            <header>
-                <div class="header-top">
-                    <div class="last-update">
-                        Last Update: <span id="last-update-time"></span>
-                    </div>
+    <div class="main-content">
+        <header>
+            <div class="header-top">
+                <div class="last-update">
+                    Last Update: <span id="last-update-time"></span>
+                </div>
+                <div class="export-buttons">
                     <button class="export-btn" onclick="exportToExcel()">
-                        <i class="fas fa-file-excel"></i> Export to Excel
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                    <button class="export-btn pdf" onclick="exportToPDF()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
                     </button>
                 </div>
-                
-                <h1>PRODUCTION ALL AREA</h1>
-                <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
-            </header>
-            
-            <div class="error-message" id="error-message"></div>
-            
-            <div class="upload-container" id="upload-container">
-                <input type="file" id="excel-file" accept=".xlsx, .xls">
-                <div id="upload-area">
-                    <div class="upload-icon">📤</div>
-                    <div class="upload-text">
-                        <h3>Unggah File Excel</h3>
-                        <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
-                        <p><small>Pastikan file memiliki kolom: Area, Plant Name, ANN FM Target, MTD VOL, % of Target, Avg Vol.Day, RMC Schedule, Actual Supply</small></p>
-                    </div>
-                </div>
             </div>
             
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                <p>Memproses data...</p>
-            </div>
-            
-            <button class="debug-toggle" onclick="toggleDebug()">Toggle Debug Info</button>
-            <div class="debug-panel" id="debug-panel">
-                <h3>Debug Information</h3>
-                <pre id="debug-output"></pre>
-            </div>
-            
-            <div id="dashboard-content" style="display: none;">
-                <div class="kpi-container">
-                    <div class="kpi-card">
-                        <div class="kpi-title">Total Area</div>
-                        <div class="kpi-value" id="total-area">0</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-title">Total Plant</div>
-                        <div class="kpi-value" id="total-plant">0</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-title">% of Target</div>
-                        <div class="kpi-value" id="target-percent">0%</div>
-                        <div class="gauge-container">
-                            <canvas id="targetGauge"></canvas>
-                        </div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-title">% Actual Supply</div>
-                        <div class="kpi-value" id="supply-percent">0%</div>
-                        <div class="gauge-container">
-                            <canvas id="supplyGauge"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="charts-container" id="charts-container">
-                    <div class="chart-card">
-                        <div class="chart-title">MTD VOL vs ANN FM Target per Plant</div>
-                        <div class="chart-container">
-                            <canvas id="volumeTargetChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-title">% of Target per Plant</div>
-                        <div class="chart-container">
-                            <canvas id="targetPercentChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-title">Avg Vol. Day per Plant</div>
-                        <div class="chart-container">
-                            <canvas id="avgVolumeChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
-                        <div class="chart-container">
-                            <canvas id="rmcVolumeChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="chart-title">% Actual Supply per Plant</div>
-                        <div class="chart-container">
-                            <canvas id="supplyPercentChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="data-preview" id="data-preview">
-                    <h3>Pratinjau Data</h3>
-                    <table>
-                        <thead id="preview-head">
-                            <tr>
-                                <th>Periode</th>
-                                <th>Area</th>
-                                <th>Plant</th>
-                                <th>ANN FM Target</th>
-                                <th>MTD VOL</th>
-                                <th>% of Target</th>
-                                <th>RMC Schedule</th>
-                                <th>% Actual Supply</th>
-                            </tr>
-                        </thead>
-                        <tbody id="preview-body">
-                            <!-- Data akan diisi oleh JavaScript -->
-                        </tbody>
-                    </table>
+            <h1>PRODUCTION ALL AREA</h1>
+            <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
+        </header>
+        
+        <div class="error-message" id="error-message"></div>
+        
+        <div class="upload-container" id="upload-container">
+            <input type="file" id="excel-file" accept=".xlsx, .xls">
+            <div id="upload-area">
+                <div class="upload-icon">📤</div>
+                <div class="upload-text">
+                    <h3>Unggah File Excel</h3>
+                    <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
+                    <p><small>Pastikan file memiliki kolom: Area, Plant Name, ANN FM Target, MTD VOL, % of Target, Avg Vol.Day, RMC Schedule, Actual Supply</small></p>
                 </div>
             </div>
-            
-            <footer>
-                Production All Area by L=23-51Xe
-            </footer>
         </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Memproses data...</p>
+        </div>
+        
+        <div id="dashboard-content" style="display: none;">
+            <div class="kpi-container">
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Area</div>
+                    <div class="kpi-value" id="total-area">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Plant</div>
+                    <div class="kpi-value" id="total-plant">0</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">% of Target</div>
+                    <div class="kpi-value" id="target-percent">0%</div>
+                    <div class="gauge-container">
+                        <canvas id="targetGauge"></canvas>
+                    </div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">% Actual Supply</div>
+                    <div class="kpi-value" id="supply-percent">0%</div>
+                    <div class="gauge-container">
+                        <canvas id="supplyGauge"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="charts-container" id="charts-container">
+                <div class="chart-card">
+                    <div class="chart-title">MTD VOL vs ANN FM Target per Plant</div>
+                    <div class="chart-container">
+                        <canvas id="volumeTargetChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">% of Target per Plant</div>
+                    <div class="chart-container">
+                        <canvas id="targetPercentChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">Avg Vol. Day per Plant</div>
+                    <div class="chart-container">
+                        <canvas id="avgVolumeChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
+                    <div class="chart-container">
+                        <canvas id="rmcVolumeChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-title">% Actual Supply per Plant</div>
+                    <div class="chart-container">
+                        <canvas id="supplyPercentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="data-preview" id="data-preview">
+                <h3>Pratinjau Data</h3>
+                <table>
+                    <thead id="preview-head">
+                        <tr>
+                            <th>Periode</th>
+                            <th>Area</th>
+                            <th>Plant</th>
+                            <th>ANN FM Target</th>
+                            <th>MTD VOL</th>
+                            <th>% of Target</th>
+                            <th>RMC Schedule</th>
+                            <th>% Actual Supply</th>
+                        </tr>
+                    </thead>
+                    <tbody id="preview-body">
+                        <!-- Data akan diisi oleh JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <footer>
+            Production All Area by L=23-51Xe
+        </footer>
     </div>
 
     <script>
@@ -617,6 +613,7 @@
         let rawData = [];
         let filteredData = [];
         let allAreas = [];
+        let allPeriods = [];
         let currentPeriod = "";
         let isAllAreasSelected = false;
         
@@ -635,9 +632,11 @@
             document.getElementById('last-update-time').textContent = `${formattedDate} ${formattedTime}`;
         }
         
-        // Toggle sidebar di mobile
+        // Toggle sidebar
         function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+            document.body.classList.toggle('sidebar-open');
         }
         
         // Toggle filter content
@@ -680,16 +679,6 @@
             // Inisialisasi chart dengan data kosong
             initializeCharts();
         });
-        
-        function toggleDebug() {
-            const debugPanel = document.getElementById('debug-panel');
-            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
-        }
-        
-        function debugLog(message) {
-            const debugOutput = document.getElementById('debug-output');
-            debugOutput.textContent += message + '\n';
-        }
         
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -829,6 +818,9 @@
             // Ekstrak daftar area unik untuk filter
             extractAreas(normalizedData);
             
+            // Ekstrak daftar periode unik untuk filter
+            extractPeriods(normalizedData);
+            
             // Tampilkan preview data
             showDataPreview(normalizedData);
             
@@ -872,6 +864,18 @@
             populateAreaFilter(allAreas);
         }
         
+        function extractPeriods(data) {
+            const periodSet = new Set();
+            
+            data.forEach(row => {
+                const period = getValue(row, ['periode', 'period', 'bulan', 'month']) || '';
+                if (period) periodSet.add(period);
+            });
+            
+            allPeriods = Array.from(periodSet).sort();
+            populatePeriodFilter(allPeriods);
+        }
+        
         function populateAreaFilter(areas) {
             const container = document.getElementById('area-checkboxes');
             container.innerHTML = '';
@@ -891,15 +895,28 @@
             isAllAreasSelected = true;
         }
         
+        function populatePeriodFilter(periods) {
+            const select = document.getElementById('period-select');
+            // Hapus opsi selain "Semua Bulan"
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+            
+            // Tambahkan periode ke dropdown
+            periods.forEach(period => {
+                const option = document.createElement('option');
+                option.value = period;
+                option.textContent = period;
+                select.appendChild(option);
+            });
+        }
+        
         function toggleAllAreas(checked) {
             const checkboxes = document.querySelectorAll('input[name="area"]');
             checkboxes.forEach(checkbox => {
                 checkbox.checked = checked;
             });
             isAllAreasSelected = checked;
-            
-            // Terapkan filter secara otomatis ketika memilih select all
-            applyAreaFilter();
         }
         
         function applyAreaFilter() {
@@ -917,10 +934,55 @@
             } else {
                 // Filter data berdasarkan area yang dipilih
                 filteredData = rawData.filter(row => {
-                    const area = getValue(row, ['area']) || '';
+                    const normalizedRow = normalizeData([row])[0];
+                    const area = getValue(normalizedRow, ['area']) || '';
                     return selectedAreas.includes(area);
                 });
                 isAllAreasSelected = false;
+            }
+            
+            // Terapkan filter periode juga
+            applyPeriodFilter();
+        }
+        
+        function applyPeriodFilter() {
+            const periodSelect = document.getElementById('period-select');
+            const selectedPeriod = periodSelect.value;
+            
+            if (selectedPeriod === 'all') {
+                // Tidak perlu filter berdasarkan periode
+                if (isAllAreasSelected) {
+                    filteredData = rawData;
+                } else {
+                    // Tetap terapkan filter area
+                    applyAreaFilter();
+                    return;
+                }
+            } else {
+                // Filter data berdasarkan periode yang dipilih
+                filteredData = rawData.filter(row => {
+                    const normalizedRow = normalizeData([row])[0];
+                    const period = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || '';
+                    return period === selectedPeriod;
+                });
+                
+                // Juga terapkan filter area jika ada
+                if (!isAllAreasSelected) {
+                    const selectedAreas = [];
+                    const checkboxes = document.querySelectorAll('input[name="area"]:checked');
+                    
+                    checkboxes.forEach(checkbox => {
+                        selectedAreas.push(checkbox.value);
+                    });
+                    
+                    if (selectedAreas.length > 0) {
+                        filteredData = filteredData.filter(row => {
+                            const normalizedRow = normalizeData([row])[0];
+                            const area = getValue(normalizedRow, ['area']) || '';
+                            return selectedAreas.includes(area);
+                        });
+                    }
+                }
             }
             
             // Ubah layout chart jika select all dipilih
@@ -939,12 +1001,6 @@
             updateDashboard(normalizedData);
         }
         
-        function applyPeriodFilter() {
-            // Implementasi filter periode berdasarkan tanggal
-            // Di sini kita hanya akan mensimulasikan
-            alert('Filter periode diterapkan. Dalam implementasi nyata, ini akan memfilter data berdasarkan tanggal.');
-        }
-        
         function showDataPreview(data) {
             const previewBody = document.getElementById('preview-body');
             previewBody.innerHTML = '';
@@ -958,24 +1014,28 @@
                 const tr = document.createElement('tr');
                 
                 // Ambil nilai dari kolom
+                const periode = getValue(row, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
                 const area = getValue(row, ['area']) || 'N/A';
                 const plant = getValue(row, ['plantname', 'plant']) || 'N/A';
                 const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
                 const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
-                const percent = parseIndonesianNumber(extractPercentage(getValue(row, ['percentoftarget', 'oftarget', 'targetpercent'])));
-                const avgVol = parseIndonesianNumber(getValue(row, ['avgvolday', 'avgvolume', 'average']));
                 const rmc = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
-                const actual = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
+                
+                // Hitung % of Target (MTD VOL / ANN FM Target)
+                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                
+                // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
                 
                 tr.innerHTML = `
-                    <td>${currentPeriod}</td>
+                    <td>${periode}</td>
                     <td>${area}</td>
                     <td>${plant}</td>
                     <td>${target.toLocaleString('id-ID')}</td>
                     <td>${mtdVol.toLocaleString('id-ID')}</td>
-                    <td class="percentage-cell">${percent.toFixed(2)}%</td>
+                    <td class="percentage-cell">${targetPercent.toFixed(2)}%</td>
                     <td>${rmc.toLocaleString('id-ID')}</td>
-                    <td class="percentage-cell">${actual.toFixed(2)}%</td>
+                    <td class="percentage-cell">${actualSupply.toFixed(2)}%</td>
                 `;
                 
                 previewBody.appendChild(tr);
@@ -990,17 +1050,6 @@
                 }
             }
             return '';
-        }
-        
-        // Helper function untuk mengekstrak nilai persentase
-        function extractPercentage(value) {
-            if (typeof value === 'string') {
-                // Jika sudah mengandung %, hapus % dan konversi ke angka
-                if (value.includes('%')) {
-                    return value.replace('%', '');
-                }
-            }
-            return value;
         }
         
         function initializeCharts() {
@@ -1081,8 +1130,12 @@
                 const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
                 const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
                 const rmcSchedule = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
-                const targetPercent = parseIndonesianNumber(extractPercentage(getValue(row, ['percentoftarget', 'oftarget', 'targetpercent'])));
-                const actualSupply = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
+                
+                // Hitung % of Target (MTD VOL / ANN FM Target)
+                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                
+                // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                const actualSupply = rmcSchedule > 0 ? (mtdVol / rmcSchedule) * 100 : 0;
                 
                 if (area) areas.add(area);
                 if (plant) plants.add(plant);
@@ -1128,10 +1181,14 @@
                 
                 const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
                 const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
-                const targetPercent = parseIndonesianNumber(extractPercentage(getValue(row, ['percentoftarget', 'oftarget', 'targetpercent'])));
-                const avgVolDay = parseIndonesianNumber(getValue(row, ['avgvolday', 'avgvolume', 'average']));
                 const rmcSchedule = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
-                const actualSupply = parseIndonesianNumber(extractPercentage(getValue(row, ['actualsupply', 'percentactualsupply', 'supply'])));
+                const avgVolDay = parseIndonesianNumber(getValue(row, ['avgvolday', 'avgvolume', 'average']));
+                
+                // Hitung % of Target (MTD VOL / ANN FM Target)
+                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                
+                // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                const actualSupply = rmcSchedule > 0 ? (mtdVol / rmcSchedule) * 100 : 0;
                 
                 plantData[plant].target += isNaN(target) ? 0 : target;
                 plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
@@ -1241,6 +1298,73 @@
             
             // Export ke file Excel
             XLSX.writeFile(wb, "production_data.xlsx");
+        }
+        
+        function exportToPDF() {
+            if (filteredData.length === 0) {
+                alert('Tidak ada data untuk diexport');
+                return;
+            }
+            
+            // Buat instance jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Tambahkan judul
+            doc.setFontSize(18);
+            doc.text('PRODUCTION REPORT', 105, 15, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text(`Periode: ${currentPeriod}`, 105, 22, { align: 'center' });
+            doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 105, 28, { align: 'center' });
+            
+            // Siapkan data untuk tabel
+            const tableData = [];
+            filteredData.forEach(row => {
+                const normalizedRow = normalizeData([row])[0];
+                const periode = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
+                const area = getValue(normalizedRow, ['area']) || 'N/A';
+                const plant = getValue(normalizedRow, ['plantname', 'plant']) || 'N/A';
+                const target = parseIndonesianNumber(getValue(normalizedRow, ['annfmtarget', 'annfm', 'target']));
+                const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
+                const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
+                
+                // Hitung % of Target (MTD VOL / ANN FM Target)
+                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                
+                // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
+                
+                tableData.push([
+                    periode,
+                    area,
+                    plant,
+                    target.toLocaleString('id-ID'),
+                    mtdVol.toLocaleString('id-ID'),
+                    `${targetPercent.toFixed(2)}%`,
+                    rmc.toLocaleString('id-ID'),
+                    `${actualSupply.toFixed(2)}%`
+                ]);
+            });
+            
+            // Buat tabel
+            doc.autoTable({
+                head: [['Periode', 'Area', 'Plant', 'ANN FM Target', 'MTD VOL', '% of Target', 'RMC Schedule', '% Actual Supply']],
+                body: tableData,
+                startY: 35,
+                theme: 'grid',
+                headStyles: {
+                    fillColor: [74, 100, 145],
+                    textColor: 255
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 1
+                },
+                margin: { left: 10, right: 10 }
+            });
+            
+            // Simpan PDF
+            doc.save('production_report.pdf');
         }
     </script>
 </body>
