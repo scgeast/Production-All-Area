@@ -373,7 +373,7 @@
             if (!file) return;
             
             // Validasi ukuran file (0.2MB - 30MB)
-            if (file.size < 2 * 1024 * 1024 || file.size > 30 * 1024 * 1024) {
+            if (file.size < 2 * 1024 || file.size > 30 * 1024 * 1024) {
                 alert('Ukuran file harus antara 0.2MB dan 30MB');
                 return;
             }
