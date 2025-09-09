@@ -238,7 +238,7 @@
                 <div class="upload-icon">📤</div>
                 <div class="upload-text">
                     <h3>Unggah File Excel</h3>
-                    <p>Klik atau seret file Excel ke sini (0.2MB - 30MB)</p>
+                    <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
                 </div>
             </div>
         </div>
@@ -372,9 +372,9 @@
             
             if (!file) return;
             
-            // Validasi ukuran file (0.2MB - 30MB)
+            // PERUBAHAN DI SINI: Validasi ukuran file (2KB - 30MB)
             if (file.size < 2 * 1024 || file.size > 30 * 1024 * 1024) {
-                alert('Ukuran file harus antara 0.2MB dan 30MB');
+                alert('Ukuran file harus antara 2KB dan 30MB');
                 return;
             }
             
