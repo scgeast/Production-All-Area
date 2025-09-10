@@ -85,6 +85,7 @@
         .filter-title {
             font-weight: 600;
             color: #2c3e50;
+            font-size: 1.1rem;
         }
         
         .filter-content {
@@ -99,6 +100,7 @@
             display: block;
             margin-bottom: 5px;
             font-weight: 500;
+            color: #34495e;
         }
         
         .filter-group select {
@@ -106,6 +108,7 @@
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
+            background-color: #f8f9fa;
         }
         
         .checkbox-group {
@@ -114,6 +117,7 @@
             border: 1px solid #eee;
             border-radius: 5px;
             padding: 10px;
+            background-color: #f8f9fa;
         }
         
         .checkbox-item {
@@ -127,15 +131,23 @@
             width: auto;
         }
         
+        .checkbox-item label {
+            color: #2c3e50;
+        }
+        
         .toggle-group {
             display: flex;
             align-items: center;
             justify-content: space-between;
             margin-top: 10px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
         }
         
         .toggle-label {
             font-weight: 500;
+            color: #2c3e50;
         }
         
         .toggle-switch {
@@ -307,6 +319,7 @@
             border-radius: 10px;
             z-index: 9999;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border: 1px solid #ddd;
         }
         
         .spinner {
@@ -337,6 +350,7 @@
             border-radius: 10px;
             text-align: center;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
         }
         
         .kpi-title {
@@ -367,6 +381,7 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e0e0e0;
         }
         
         .chart-title {
@@ -433,6 +448,7 @@
             background-color: #f8d7da;
             border-radius: 5px;
             display: none;
+            border: 1px solid #f5c6cb;
         }
         
         @media (max-width: 1200px) {
@@ -775,6 +791,61 @@
             // Inisialisasi chart dengan data kosong
             initializeCharts();
         });
+        
+        function initializeCharts() {
+            // Konfigurasi options yang konsisten untuk semua chart
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    // KONFIGURASI DATA LABELS DENGAN WARNA HITAM
+                    datalabels: {
+                        display: false,
+                        color: '#000', // WARNA HITAM
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: function(value) {
+                            if (value >= 1000) {
+                                return (value/1000).toFixed(1) + 'K';
+                            }
+                            return value.toFixed(1);
+                        }
+                    }
+                }
+            };
+
+            // Inisialisasi semua chart dengan konfigurasi yang konsisten
+            const chartIds = [
+                'volumeTargetChart', 'targetPercentChart', 
+                'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
+            ];
+            
+            chartIds.forEach(id => {
+                const ctx = document.getElementById(id).getContext('2d');
+                
+                charts[id] = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Data',
+                            data: [],
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                        }]
+                    },
+                    options: commonOptions
+                });
+            });
+        }
         
         function handleFileUpload(event) {
             const file = event.target.files[0];
@@ -1146,60 +1217,6 @@
             return '';
         }
         
-         function initializeCharts() {
-              // Konfigurasi options yang konsisten untuk semua chart
-              const commonOptions = {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true }
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'top'
-                        },
-                        datalabels: {
-                            display: false, // Default disembunyikan
-                            color: '#000',
-                            font: {
-                                weight: 'bold',
-                                size: 11
-                            },
-                            formatter: function(value) {
-                                if (value >= 1000) {
-                                    return (value/1000).toFixed(1) + 'K';
-                                }
-                                return value.toFixed(1);
-                            }
-                        }
-                    }
-                };
-
-                // Inisialisasi semua chart dengan konfigurasi yang konsisten
-                const chartIds = [
-                    'volumeTargetChart', 'targetPercentChart', 
-                    'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
-                ];
-    
-                chartIds.forEach(id => {
-                    const ctx = document.getElementById(id).getContext('2d');
-        
-                    charts[id] = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                            label: 'Data',
-                            data: [],
-                            backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                        }]
-                     },
-                    options: commonOptions
-                });
-            });
-        }
-        
         function updateDashboard(data) {
             if (!data || data.length === 0) {
                 showError('Tidak ada data yang valid untuk ditampilkan');
@@ -1236,7 +1253,7 @@
                 totalMtdVol += isNaN(mtdVol) ? 0 : mtdVol;
                 totalRmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
                 totalTargetPercent += isNaN(targetPercent) ? 0 : targetPercent;
-                totalActualSupply += isNaN(actualSupply) ? 0 : actualSupply;
+                totalActualSupply += isNaN(actualSupply) * 100 : 0;
                 count++;
             });
             
@@ -1378,14 +1395,14 @@
                 'volumeTargetChart', 'targetPercentChart', 
                 'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
             ];
-    
+            
             chartIds.forEach(chartId => {
                 if (charts[chartId]) {
                     // Pastikan opsi datalabels ada
                     if (!charts[chartId].options.plugins.datalabels) {
                         charts[chartId].options.plugins.datalabels = {
                             display: showDataLabels,
-                            color: '#000',
+                            color: '#000', // WARNA HITAM
                             font: {
                                 weight: 'bold',
                                 size: 11
@@ -1393,13 +1410,14 @@
                         };
                     } else {
                         charts[chartId].options.plugins.datalabels.display = showDataLabels;
+                        charts[chartId].options.plugins.datalabels.color = '#000'; // WARNA HITAM
                     }
-            
+                    
                     // Update chart
                     charts[chartId].update();
                 }
             });
-    
+            
             // Update status toggle button
             document.getElementById('data-labels-toggle').checked = showDataLabels;
         }
