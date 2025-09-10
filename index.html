@@ -86,6 +86,7 @@
         .filter-title {
             font-weight: 600;
             color: #2c3e50;
+            font-size: 16px;
         }
         
         .filter-content {
@@ -206,6 +207,7 @@
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 15px;
+            position: relative;
         }
         
         .last-update {
@@ -220,6 +222,9 @@
         .export-buttons {
             display: flex;
             gap: 10px;
+            position: absolute;
+            top: 20px;
+            right: 20px;
         }
         
         .export-btn {
@@ -341,6 +346,7 @@
             border-radius: 10px;
             text-align: center;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            position: relative;
         }
         
         .kpi-title {
@@ -367,6 +373,7 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            position: relative;
         }
         
         .chart-title {
@@ -382,17 +389,45 @@
             position: relative;
         }
         
+        .chart-export-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #c62828;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 5px 10px;
+            cursor: pointer;
+            z-index: 10;
+            font-size: 0.8rem;
+        }
+        
+        .chart-export-btn:hover {
+            background: #d32f2f;
+        }
+        
         footer {
             text-align: center;
             padding: 20px;
             margin-top: 30px;
             color: #666;
             font-size: 0.9rem;
+            position: relative;
+        }
+        
+        .footer-info {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            color: #888;
+            font-size: 0.8rem;
         }
         
         .data-preview {
             margin-top: 20px;
             overflow-x: auto;
+            position: relative;
         }
         
         .data-preview table {
@@ -469,7 +504,9 @@
             }
             
             .export-buttons {
+                position: static;
                 justify-content: center;
+                margin-top: 15px;
             }
         }
         
@@ -634,18 +671,27 @@
             
             <div class="charts-container" id="charts-container">
                 <div class="chart-card">
+                    <button class="chart-export-btn" onclick="exportChartToPDF('volumeTargetChart')">
+                        <i class="fas fa-file-pdf"></i> Export
+                    </button>
                     <div class="chart-title">MTD VOL x ANN FM Target x % Target per Plant</div>
                     <div class="chart-container">
                         <canvas id="volumeTargetChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
+                    <button class="chart-export-btn" onclick="exportChartToPDF('rmcVolumeChart')">
+                        <i class="fas fa-file-pdf"></i> Export
+                    </button>
                     <div class="chart-title">RMC Schedule x MTD VOL x % Actual per Plant</div>
                     <div class="chart-container">
                         <canvas id="rmcVolumeChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
+                    <button class="chart-export-btn" onclick="exportChartToPDF('avgVolumeChart')">
+                        <i class="fas fa-file-pdf"></i> Export
+                    </button>
                     <div class="chart-title">Avg Vol. Day per Plant</div>
                     <div class="chart-container">
                         <canvas id="avgVolumeChart"></canvas>
@@ -654,6 +700,9 @@
             </div>
             
             <div class="data-preview" id="data-preview">
+                <button class="chart-export-btn" onclick="exportTableToPDF()" style="position: absolute; top: 10px; right: 10px;">
+                    <i class="fas fa-file-pdf"></i> Export Table
+                </button>
                 <h3>Pratinjau Data</h3>
                 <table>
                     <thead id="preview-head">
@@ -677,6 +726,7 @@
         
         <footer>
             Production All Area by L=23-51Xe
+            <div class="footer-info" id="footer-info"></div>
         </footer>
     </div>
 
@@ -709,6 +759,7 @@
                 minute: '2-digit'
             });
             document.getElementById('last-update-time').textContent = `${formattedDate} ${formattedTime}`;
+            document.getElementById('footer-info').textContent = `Exported: ${formattedDate} ${formattedTime}`;
         }
         
         // Update judul berdasarkan area yang dipilih
@@ -862,7 +913,7 @@
                         // Ambil periode dari header
                         let period = "Data tidak ditemukan";
                         // Coba ambil dari berbagai lokasi yang mungkin
-                        if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1'].v;
+                        if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1].v;
                         if (worksheet['B1'] && worksheet['B1'].v) period = worksheet['B1'].v;
                         
                         currentPeriod = period;
@@ -1431,7 +1482,7 @@
                 plantData[plant].target += isNaN(target) ? 0 : target;
                 plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
                 plantData[plant].targetPercent += isNaN(targetPercent) ? 0 : targetPercent;
-                plantData[plant].avgVolDay += isNaN(avgVolDay) ? 0 : avgVolDay;
+                plantData[plant].avgVolDay += isNaN(avgVolDay)  ? 0 : avgVolDay;
                 plantData[plant].rmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
                 plantData[plant].actualSupply += isNaN(actualSupply) ? 0 : actualSupply;
                 plantData[plant].count += 1;
@@ -1558,129 +1609,309 @@
         
         function exportToPDF() {
             if (filteredData.length === 0) {
-            alert('Tidak ada data untuk diexport');
-            return;
+                alert('Tidak ada data untuk diexport');
+                return;
             }
-    
+            
             // Tampilkan loading
             showLoading();
-    
-            // Buat instance jsPDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('landscape', 'mm', 'a4');
-    
-            // Tambahkan judul
-            doc.setFontSize(18);
-            doc.text(document.getElementById('dynamic-title').textContent, 145, 15, { align: 'center' });
-            doc.setFontSize(12);
-            doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 145, 22, { align: 'center' });
-            doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 145, 28, { align: 'center' });
-    
-            // Capture charts as images and add to PDF
-            const chartIds = ['volumeTargetChart', 'rmcVolumeChart', 'avgVolumeChart'];
-            const chartPromises = [];
-    
-            // Buat promise untuk setiap chart
-        chartIds.forEach(chartId => {
-            const canvas = document.getElementById(chartId);
-            chartPromises.push(
+            
+            try {
+                // Buat instance jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // Tambahkan header
+                doc.setFillColor(42, 100, 150);
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(18);
+                doc.text(document.getElementById('dynamic-title').textContent, 105, 15, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 105, 23, { align: 'center' });
+                
+                // Capture charts as images and add to PDF
+                const chartIds = ['volumeTargetChart', 'rmcVolumeChart', 'avgVolumeChart'];
+                const chartPromises = [];
+                
+                // Buat promise untuk setiap chart
+                chartIds.forEach(chartId => {
+                    const canvas = document.getElementById(chartId);
+                    chartPromises.push(
+                        html2canvas(canvas, {
+                            scale: 2,
+                            logging: false,
+                            useCORS: true,
+                            backgroundColor: '#FFFFFF'
+                        })
+                    );
+                });
+                
+                // Tunggu semua chart selesai di-render
+                Promise.all(chartPromises)
+                    .then(canvases => {
+                        let yPosition = 40;
+                        
+                        // Tambahkan setiap chart ke PDF
+                        canvases.forEach((canvas, index) => {
+                            const imgData = canvas.toDataURL('image/png');
+                            const imgWidth = 170;
+                            const imgHeight = canvas.height * imgWidth / canvas.width;
+                            
+                            // Jika tidak cukup ruang di halaman saat ini, tambahkan halaman baru
+                            if (yPosition + imgHeight > 250) {
+                                doc.addPage();
+                                yPosition = 20;
+                            }
+                            
+                            // Tambahkan chart ke PDF
+                            doc.addImage(imgData, 'PNG', 20, yPosition, imgWidth, imgHeight);
+                            yPosition += imgHeight + 15;
+                        });
+                        
+                        // Tambahkan halaman baru untuk tabel data
+                        doc.addPage();
+                        
+                        // Siapkan data untuk tabel
+                        const tableData = [];
+                        filteredData.forEach(row => {
+                            const normalizedRow = normalizeData([row])[0];
+                            const periode = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
+                            const area = getValue(normalizedRow, ['area']) || 'N/A';
+                            const plant = getValue(normalizedRow, ['plantname', 'plant']) || 'N/A';
+                            const target = parseIndonesianNumber(getValue(normalizedRow, ['annfmtarget', 'annfm', 'target']));
+                            const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
+                            const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
+                            
+                            // Hitung % of Target (MTD VOL / ANN FM Target)
+                            const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                            
+                            // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                            const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
+                            
+                            tableData.push([
+                                periode,
+                                area,
+                                plant,
+                                target.toLocaleString('id-ID'),
+                                mtdVol.toLocaleString('id-ID'),
+                                `${targetPercent.toFixed(2)}%`,
+                                rmc.toLocaleString('id-ID'),
+                                `${actualSupply.toFixed(2)}%`
+                            ]);
+                        });
+                        
+                        // Tambahkan header untuk tabel
+                        doc.setFillColor(42, 100, 150);
+                        doc.rect(0, 0, 210, 30, 'F');
+                        doc.setTextColor(255, 255, 255);
+                        doc.setFontSize(18);
+                        doc.text("PRODUCTION REPORT", 105, 15, { align: 'center' });
+                        doc.setFontSize(12);
+                        doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 105, 23, { align: 'center' });
+                        
+                        // Buat tabel
+                        doc.autoTable({
+                            head: [['Periode', 'Area', 'Plant', 'ANN FM Target', 'MTD VOL', '% of Target', 'RMC Schedule', '% Actual Supply']],
+                            body: tableData,
+                            startY: 40,
+                            theme: 'grid',
+                            headStyles: {
+                                fillColor: [74, 100, 145],
+                                textColor: 255,
+                                fontStyle: 'bold'
+                            },
+                            styles: {
+                                fontSize: 8,
+                                cellPadding: 2,
+                                overflow: 'linebreak'
+                            },
+                            margin: { left: 10, right: 10 }
+                        });
+                        
+                        // Tambahkan footer
+                        const pageCount = doc.internal.getNumberOfPages();
+                        for(let i = 1; i <= pageCount; i++) {
+                            doc.setPage(i);
+                            doc.setFontSize(10);
+                            doc.setTextColor(100);
+                            doc.text(`Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
+                            doc.text(`Exported: ${new Date().toLocaleDateString('id-ID')}`, 200, 285, { align: 'right' });
+                            doc.text(`Production ${selectedAreaName} Area by L=23-51Xe`, 10, 285, { align: 'left' });
+                        }
+                        
+                        // Simpan PDF
+                        doc.save(`production_${selectedAreaName}_report.pdf`);
+                        
+                        // Sembunyikan loading
+                        hideLoading();
+                    })
+                    .catch(error => {
+                        console.error('Error generating PDF charts:', error);
+                        alert('Terjadi kesalahan saat membuat PDF: ' + error.message);
+                        hideLoading();
+                    });
+            } catch (error) {
+                console.error('Error in PDF generation:', error);
+                alert('Terjadi kesalahan saat inisialisasi PDF: ' + error.message);
+                hideLoading();
+            }
+        }
+        
+        function exportChartToPDF(chartId) {
+            if (!charts[chartId]) {
+                alert('Chart tidak tersedia untuk diexport');
+                return;
+            }
+            
+            // Tampilkan loading
+            showLoading();
+            
+            try {
+                // Buat instance jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // Tambahkan header
+                doc.setFillColor(42, 100, 150);
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(18);
+                doc.text(document.getElementById('dynamic-title').textContent, 105, 15, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 105, 23, { align: 'center' });
+                
+                // Capture chart sebagai image
+                const canvas = document.getElementById(chartId);
                 html2canvas(canvas, {
-                    scale: 2, // Kualitas lebih tinggi
+                    scale: 2,
                     logging: false,
-                    useCORS: true
-                })
-            );
-        });
-    
-            // Tunggu semua chart selesai di-render
-            Promise.all(chartPromises)
-                .then(canvases => {
-                    let yPosition = 40;
+                    useCORS: true,
+                    backgroundColor: '#FFFFFF'
+                }).then(canvas => {
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = 170;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    
+                    // Tambahkan chart ke PDF
+                    doc.addImage(imgData, 'PNG', 20, 40, imgWidth, imgHeight);
+                    
+                    // Tambahkan footer
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(`Exported: ${new Date().toLocaleDateString('id-ID')}`, 200, 285, { align: 'right' });
+                    doc.text(`Production ${selectedAreaName} Area by L=23-51Xe`, 10, 285, { align: 'left' });
+                    
+                    // Simpan PDF
+                    doc.save(`production_${selectedAreaName}_${chartId}.pdf`);
+                    
+                    // Sembunyikan loading
+                    hideLoading();
+                }).catch(error => {
+                    console.error('Error generating chart PDF:', error);
+                    alert('Terjadi kesalahan saat membuat PDF chart: ' + error.message);
+                    hideLoading();
+                });
+            } catch (error) {
+                console.error('Error in PDF generation:', error);
+                alert('Terjadi kesalahan saat inisialisasi PDF: ' + error.message);
+                hideLoading();
+            }
+        }
+        
+        function exportTableToPDF() {
+            if (filteredData.length === 0) {
+                alert('Tidak ada data untuk diexport');
+                return;
+            }
             
-                    canvases.forEach((canvas, index) => {
-                        const imgData = canvas.toDataURL('image/png');
-                        const imgWidth = 120;
-                        const imgHeight = canvas.height * imgWidth / canvas.width;
+            // Tampilkan loading
+            showLoading();
+            
+            try {
+                // Buat instance jsPDF
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
                 
-                // Jika tidak cukup ruang di halaman saat ini, tambahkan halaman baru
-                if (yPosition + imgHeight > 180) {
-                    doc.addPage();
-                    yPosition = 20;
+                // Tambahkan header
+                doc.setFillColor(42, 100, 150);
+                doc.rect(0, 0, 210, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(18);
+                doc.text(document.getElementById('dynamic-title').textContent, 105, 15, { align: 'center' });
+                doc.setFontSize(12);
+                doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 105, 23, { align: 'center' });
+                
+                // Siapkan data untuk tabel
+                const tableData = [];
+                filteredData.forEach(row => {
+                    const normalizedRow = normalizeData([row])[0];
+                    const periode = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
+                    const area = getValue(normalizedRow, ['area']) || 'N/A';
+                    const plant = getValue(normalizedRow, ['plantname', 'plant']) || 'N/A';
+                    const target = parseIndonesianNumber(getValue(normalizedRow, ['annfmtarget', 'annfm', 'target']));
+                    const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
+                    const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
+                    
+                    // Hitung % of Target (MTD VOL / ANN FM Target)
+                    const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                    
+                    // Hitung % Actual Supply (MTD VOL / RMC Schedule)
+                    const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
+                    
+                    tableData.push([
+                        periode,
+                        area,
+                        plant,
+                        target.toLocaleString('id-ID'),
+                        mtdVol.toLocaleString('id-ID'),
+                        `${targetPercent.toFixed(2)}%`,
+                        rmc.toLocaleString('id-ID'),
+                        `${actualSupply.toFixed(2)}%`
+                    ]);
+                });
+                
+                // Buat tabel
+                doc.autoTable({
+                    head: [['Periode', 'Area', 'Plant', 'ANN FM Target', 'MTD VOL', '% of Target', 'RMC Schedule', '% Actual Supply']],
+                    body: tableData,
+                    startY: 40,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: [74, 100, 145],
+                        textColor: 255,
+                        fontStyle: 'bold'
+                    },
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 2,
+                        overflow: 'linebreak'
+                    },
+                    margin: { left: 10, right: 10 }
+                });
+                
+                // Tambahkan footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for(let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(10);
+                    doc.setTextColor(100);
+                    doc.text(`Page ${i} of ${pageCount}`, 105, 285, { align: 'center' });
+                    doc.text(`Exported: ${new Date().toLocaleDateString('id-ID')}`, 200, 285, { align: 'right' });
+                    doc.text(`Production ${selectedAreaName} Area by L=23-51Xe`, 10, 285, { align: 'left' });
                 }
                 
-                // Atur posisi chart (kiri untuk chart ganjil, kanan untuk chart genap)
-                const xPosition = (index % 2 === 0) ? 15 : 145;
+                // Simpan PDF
+                doc.save(`production_${selectedAreaName}_table.pdf`);
                 
-                // Tambahkan chart ke PDF
-                doc.addImage(imgData, 'PNG', xPosition, yPosition, imgWidth, imgHeight);
-                
-                // Jika ini adalah chart kedua di baris yang sama, pindah ke baris berikutnya
-                if (index % 2 === 1) {
-                    yPosition += imgHeight + 10;
-                }
-            });
-            
-            // Tambahkan halaman baru untuk tabel data
-            doc.addPage();
-            
-            // Siapkan data untuk tabel
-            const tableData = [];
-            filteredData.forEach(row => {
-                const normalizedRow = normalizeData([row])[0];
-                const periode = getValue(normalizedRow, ['periode', 'period', 'bulan', 'month']) || currentPeriod;
-                const area = getValue(normalizedRow, ['area']) || 'N/A';
-                const plant = getValue(normalizedRow, ['plantname', 'plant']) || 'N/A';
-                const target = parseIndonesianNumber(getValue(normalizedRow, ['annfmtarget', 'annfm', 'target']));
-                const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
-                const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
-                
-                // Hitung % of Target (MTD VOL / ANN FM Target)
-                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
-                
-                // Hitung % Actual Supply (MTD VOL / RMC Schedule)
-                const actualSupply = rmc > 0 ? (mtdVol / rmc) * 100 : 0;
-                
-                tableData.push([
-                    periode,
-                    area,
-                    plant,
-                    target.toLocaleString('id-ID'),
-                    mtdVol.toLocaleString('id-ID'),
-                    `${targetPercent.toFixed(2)}%`,
-                    rmc.toLocaleString('id-ID'),
-                    `${actualSupply.toFixed(2)}%`
-                ]);
-            });
-            
-            // Buat tabel
-            doc.autoTable({
-                head: [['Periode', 'Area', 'Plant', 'ANN FM Target', 'MTD VOL', '% of Target', 'RMC Schedule', '% Actual Supply']],
-                body: tableData,
-                startY: 20,
-                theme: 'grid',
-                headStyles: {
-                    fillColor: [74, 100, 145],
-                    textColor: 255
-                },
-                styles: {
-                    fontSize: 8,
-                    cellPadding: 1
-                },
-                margin: { left: 10, right: 10 }
-            });
-            
-            // Simpan PDF
-            doc.save('production_report.pdf');
-            
-            // Sembunyikan loading
-            hideLoading();
-        })
-        .catch(error => {
-            console.error('Error generating PDF:', error);
-            alert('Terjadi kesalahan saat membuat PDF: ' + error.message);
-            hideLoading();
-        });
-    }
+                // Sembunyikan loading
+                hideLoading();
+            } catch (error) {
+                console.error('Error generating table PDF:', error);
+                alert('Terjadi kesalahan saat membuat PDF tabel: ' + error.message);
+                hideLoading();
+            }
+        }
     </script>
 </body>
 </html>
