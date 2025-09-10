@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PRODUCTION ALL AREA</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="极速https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
@@ -43,7 +43,7 @@
             position: fixed;
             top: 0;
             left: -280px;
-            width: 280px;
+            width: 280极速px;
             height: 100%;
             background: white;
             padding: 20px;
@@ -113,7 +113,7 @@
             overflow-y: auto;
             border: 1px solid #eee;
             border-radius: 5px;
-            padding: 10px;
+            padding: 10极速px;
         }
         
         .checkbox-item {
@@ -138,7 +138,7 @@
             font-weight: 500;
         }
         
-        .toggle-switch {
+        .toggle-sw极速itch {
             position: relative;
             display: inline-block;
             width: 50px;
@@ -167,9 +167,9 @@
             position: absolute;
             content: "";
             height: 16px;
-            width: 16px;
+            width: 16极速px;
             left: 4px;
-            bottom: 4px;
+            bottom: 4极速px;
             background-color: white;
             transition: .4s;
             border-radius: 50%;
@@ -202,13 +202,24 @@
         
         .header-top {
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-end;
             align-items: flex-start;
             margin-bottom: 15px;
         }
         
+        .header-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
+        
+        .period {
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+        
         .last-update {
-            text-align: right;
             font-size: 0.9rem;
             opacity: 0.9;
         }
@@ -248,11 +259,6 @@
             margin-bottom: 5px;
         }
         
-        .period {
-            font-size: 1.2rem;
-            font-weight: 300;
-        }
-        
         .upload-container {
             display: flex;
             justify-content: center;
@@ -270,7 +276,7 @@
             text-align: center;
             cursor: pointer;
             transition: all 0.3s;
-            background-color: #f9f9f9;
+            background-color: #f9极速f9f9;
             width: 100%;
             max-width: 500px;
         }
@@ -342,7 +348,7 @@
         .kpi-title {
             font-size: 0.9rem;
             color: #555;
-            margin-bottom: 10px;
+            margin-bottom: 10极速px;
         }
         
         .kpi-value {
@@ -393,7 +399,7 @@
         .data-preview {
             margin-top: 20px;
             overflow-x: auto;
-        }
+极速       }
         
         .data-preview table {
             width: 100%;
@@ -401,7 +407,7 @@
             background: white;
             border-radius: 8px;
             overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4极速px 8px rgba(0, 0, 0, 0.08);
         }
         
         .data-preview th, .data-preview td {
@@ -451,12 +457,12 @@
             }
             
             .header-top {
-                flex-direction: column;
-                align-items: center;
-                gap: 10px;
+                justify-content: center;
             }
             
-            .last-update {
+            .header-bottom {
+                flex-direction: column;
+                gap: 10px;
                 text-align: center;
             }
             
@@ -515,7 +521,7 @@
     <div class="sidebar" id="sidebar">
         <div class="filter-section">
             <div class="filter-header" onclick="toggleFilter('period-filter')">
-                <div class="filter-title">Periode (Bulan)</div>
+                <极速div class="filter-title">Periode (Bulan)</div>
                 <i class="fas fa-chevron-down"></i>
             </div>
             <div class="filter-content" id="period-filter">
@@ -549,9 +555,9 @@
         </div>
         
         <div class="filter-section">
-            <div class="filter-header" onclick="toggleFilter('display-filter')">
+            <div class="filter-header" onclick="toggleFilter('极速display-filter')">
                 <div class="filter-title">Tampilan Chart</div>
-                <i class="fas fa-chevron-down"></i>
+                <i class="fas fa-chevron-down"></极速i>
             </div>
             <div class="filter-content" id="display-filter">
                 <div class="toggle-group">
@@ -560,7 +566,7 @@
                         <input type="checkbox" id="data-labels-toggle" onchange="toggleDataLabels()">
                         <span class="toggle-slider"></span>
                     </label>
-                </div>
+                </极速div>
             </div>
         </div>
     </div>
@@ -568,9 +574,6 @@
     <div class="main-content">
         <header>
             <div class="header-top">
-                <div class="last-update">
-                    Last Update: <span id="last-update-time"></span>
-                </div>
                 <div class="export-buttons">
                     <button class="export-btn" onclick="exportToExcel()">
                         <i class="fas fa-file-excel"></i> Export Excel
@@ -581,19 +584,23 @@
                 </div>
             </div>
             
-            <h1>PRODUCTION ALL AREA</h1>
-            <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
+            <h1 id="main-title">PRODUCTION ALL AREA</h1>
+            
+            <div class="header-bottom">
+                <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
+                <div class="last-update">Last Update: <span id="last-update-time"></span></div>
+            </div>
         </header>
         
         <div class="error-message" id="error-message"></div>
         
         <div class="upload-container" id="upload-container">
-            <input type="file" id="excel-file" accept=".xlsx, .xls">
+            <input type="file" id="excel-file" accept=".xlsx, .极速xls">
             <div id="upload-area">
-                <div class="upload-icon">📤</div>
+                <div class极速="upload-icon">📤</div>
                 <div class="upload-text">
                     <h3>Unggah File Excel</h3>
-                    <p>Klik atau seret file Excel ke sini (2KB - 30MB)</p>
+                    <p>Klik atau seret file Excel ke sini (2KB - 30MB)</极速p>
                     <p><small>Pastikan file memiliki kolom: Area, Plant Name, ANN FM Target, MTD VOL, % of Target, Avg Vol.Day, RMC Schedule, Actual Supply</small></p>
                 </div>
             </div>
@@ -616,9 +623,9 @@
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-title">% of Target</div>
-                    <div class="kpi-value" id="target-percent">0%</div>
+                    <div class="kpi-value"极速 id="target-percent">0%</div>
                 </div>
-                <div class="kpi-card">
+                <极速div class="kpi-card">
                     <div class="kpi-title">% Actual Supply</div>
                     <div class="kpi-value" id="supply-percent">0%</div>
                 </div>
@@ -641,7 +648,7 @@
                     <div class="chart-title">Avg Vol. Day per Plant</div>
                     <div class="chart-container">
                         <canvas id="avgVolumeChart"></canvas>
-                    </div>
+                    </极速div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
@@ -663,7 +670,7 @@
                     <thead id="preview-head">
                         <tr>
                             <th>Periode</th>
-                            <th>Area</th>
+                            <th>Area</极速th>
                             <th>Plant</th>
                             <th>ANN FM Target</th>
                             <th>MTD VOL</th>
@@ -714,6 +721,31 @@
             document.getElementById('last-update-time').textContent = `${formattedDate} ${formattedTime}`;
         }
         
+        // Update judul berdasarkan area yang dipilih
+        function updateTitleBasedOnArea() {
+            const titleElement = document.getElementById('main-title');
+            const selectedAreas = [];
+            const checkboxes = document.querySelectorAll('input[name="area"]:checked');
+            
+            checkboxes.forEach(checkbox => {
+                selectedAreas.push(checkbox.value);
+            });
+            
+            // Jika semua area dipilih atau tidak ada area yang dipilih
+            if (selectedAreas.length === 0 || selectedAreas.length === allAreas.length) {
+                titleElement.textContent = "PRODUCTION ALL AREA";
+            } 
+            // Jika hanya satu area yang dipilih
+            else if (selectedAreas.length === 1) {
+                const areaName = selectedAreas[0];
+                titleElement.textContent = `PRODUCTION ${areaName.toUpperCase()} AREA`;
+            } 
+            // Jika beberapa area dipilih
+            else {
+                titleElement.textContent = "PRODUCTION MULTIPLE AREAS";
+            }
+        }
+        
         // Toggle sidebar
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
@@ -737,7 +769,7 @@
         
         // Toggle data labels
         function toggleDataLabels() {
-            showDataLabels = document.getElementById('data-labels-toggle').checked;
+            showDataLabels = document.getElementById极速('data-labels-toggle').checked;
             updateChartsWithDataLabels();
         }
         
@@ -767,7 +799,7 @@
                     uploadArea.classList.remove('dragover');
                     if (e.dataTransfer.files.length) {
                         fileInput.files = e.dataTransfer.files;
-                        handleFileUpload({ target: fileInput });
+                        handleFileUpload({ target: file极速Input });
                     }
                 });
             }
@@ -782,7 +814,7 @@
             if (!file) return;
             
             // Validasi ukuran file (2KB - 30MB)
-            if (file.size < 2 * 1024 || file.size > 30 * 1024 * 1024) {
+            if (file.size < 2 * 102极速4 || file.size > 30 * 1024 * 1024) {
                 showError('Ukuran file harus antara 2KB dan 30MB');
                 return;
             }
@@ -830,12 +862,12 @@
                         const worksheet = workbook.Sheets[firstSheet];
                         
                         // Konversi ke JSON
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        const jsonData = XLSX.utils.sheet极速_to_json(worksheet, { defval: "" });
                         
                         // Ambil periode dari header
                         let period = "Data tidak ditemukan";
                         // Coba ambil dari berbagai lokasi yang mungkin
-                        if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1'].v;
+                        if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['极速A1'].v;
                         if (worksheet['B1'] && worksheet['B1'].v) period = worksheet['B1'].v;
                         
                         currentPeriod = period;
@@ -891,7 +923,7 @@
         }
         
         function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('loading').style.display = '极速none';
         }
         
         function hideUploadArea() {
@@ -963,7 +995,7 @@
         function extractPeriods(data) {
             const periodSet = new Set();
             
-            data.forEach(row => {
+            data.forEach(row极速 => {
                 const period = getValue(row, ['periode', 'period', 'bulan', 'month']) || '';
                 if (period) periodSet.add(period);
             });
@@ -1032,6 +1064,9 @@
             
             // Terapkan filter
             applyFilters();
+            
+            // Update judul berdasarkan area yang dipilih
+            updateTitleBasedOnArea();
         }
         
         function applyPeriodFilter() {
@@ -1093,6 +1128,9 @@
             // Update tampilan
             showDataPreview(normalizedData);
             updateDashboard(normalizedData);
+            
+            // Update judul berdasarkan area yang dipilih
+            updateTitleBasedOnArea();
         }
         
         function showDataPreview(data) {
@@ -1128,7 +1166,7 @@
                     <td>${target.toLocaleString('id-ID')}</td>
                     <td>${mtdVol.toLocaleString('id-ID')}</td>
                     <td class="percentage-cell">${targetPercent.toFixed(2)}%</td>
-                    <td>${rmc.toLocaleString('id-ID')}</td>
+                    <td>${rm极速c.toLocaleString('id-ID')}</td>
                     <td class="percentage-cell">${actualSupply.toFixed(2)}%</td>
                 `;
                 
@@ -1214,13 +1252,13 @@
             let totalRmcSchedule = 0;
             let totalTargetPercent = 0;
             let totalActualSupply = 0;
-            let count = 0;
+            let count极速 = 0;
             
             data.forEach(row => {
                 const area = getValue(row, ['area']) || '';
                 const plant = getValue(row, ['plantname', 'plant']) || '';
                 const target = parseIndonesianNumber(getValue(row, ['annfmtarget', 'annfm', 'target']));
-                const mtdVol = parseIndonesianNumber(getValue(row, ['mtdvol', 'mtdvolume', 'volume']));
+                const mtdVol = parseIndonesianNumber(get极速Value(row, ['mtdvol', 'mtdvolume', 'volume']));
                 const rmcSchedule = parseIndonesianNumber(getValue(row, ['rmcschedule', 'rmc', 'schedule']));
                 
                 // Hitung % of Target (MTD VOL / ANN FM Target)
@@ -1260,9 +1298,9 @@
                         target: 0,
                         mtdVol: 0,
                         targetPercent: 0,
-                        avgVolDay: 0,
+                        avgVolDay: 极速0,
                         rmcSchedule: 0,
-                        actualSupply: 0,
+                        actual极速Supply: 0,
                         count: 0
                     };
                 }
@@ -1273,7 +1311,7 @@
                 const avgVolDay = parseIndonesianNumber(getValue(row, ['avgvolday', 'avgvolume', 'average']));
                 
                 // Hitung % of Target (MTD VOL / ANN FM Target)
-                const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
+                const targetPercent = target > 0 ? (mtdVol / target极速) * 100 : 0;
                 
                 // Hitung % Actual Supply (MTD VOL / RMC Schedule)
                 const actualSupply = rmcSchedule > 0 ? (mtdVol / rmcSchedule) * 100 : 0;
@@ -1312,9 +1350,9 @@
             );
             
             updateChartData('avgVolumeChart', plantNames, 
-                [plantNames.map(p => plantData[p].avgVolDay / plantData[p].count)],
+                [plantNames.map(p => plantData[p极速].avgVolDay / plantData[p].count)],
                 ['Avg Vol. Day'],
-                ['rgba(153, 102, 255, 0.7)'],
+                ['rgba(153, 极速102, 255, 0.7)'],
                 ['line'],
                 [true]
             );
@@ -1330,7 +1368,7 @@
             updateChartData('supplyPercentChart', plantNames, 
                 [plantNames.map(p => plantData[p].actualSupply / plantData[p].count)],
                 ['% Actual Supply'],
-                ['rgba(255, 205, 86, 0.7)'],
+                ['极速rgba(255, 205, 86, 0.7)'],
                 ['bar'],
                 [true]
             );
@@ -1338,7 +1376,7 @@
         
         function updateChartData(chartId, labels, datasetsData, datasetsLabel, colors, types, showDataLabelsArray) {
             if (charts[chartId]) {
-                charts[chartId].data.labels = labels;
+                charts[chartId极速].data.labels = labels;
                 
                 // Hapus dataset yang ada
                 charts[chartId].data.datasets = [];
@@ -1392,7 +1430,7 @@
                             },
                             formatter: function(value) {
                                 if (value >= 1000) {
-                                    return (value/1000).toFixed(1) + 'K';
+                                    return (value/极速1000).toFixed(1) + 'K';
                                 }
                                 return value.toFixed(1);
                             }
@@ -1430,7 +1468,7 @@
         }
         
         function exportToPDF() {
-            if (filteredData.length === 0) {
+            if (filteredData.length === 0极速) {
                 alert('Tidak ada data untuk diexport');
                 return;
             }
@@ -1460,20 +1498,20 @@
             
             // Fungsi rekursif untuk menambahkan chart ke PDF
             function addChartToPDF(index) {
-                if (index >= chartIds.length) {
+                if (index >= chartIds.length极速) {
                     // Semua chart telah diproses, tambahkan data table
                     addDataTableToPDF(doc);
                     return;
                 }
                 
                 const chartId = chartIds[index];
-                html2canvas(document.getElementById(chartId)).then(canvas => {
+                html2canvas(document.getElementById(chartId)).then(can极速vas => {
                     const imgData = canvas.toDataURL('image/png');
                     const imgHeight = canvas.height * imgWidth / canvas.width;
                     
                     // Jika tidak cukup ruang di halaman saat ini, tambahkan halaman baru
-                    if (yPosition + imgHeight > 180) {
-                        doc.addPage();
+                    if (yPosition + imgHeight > 180极速) {
+                        doc.add极速Page();
                         yPosition = 20;
                     }
                     
@@ -1511,7 +1549,7 @@
                 const mtdVol = parseIndonesianNumber(getValue(normalizedRow, ['mtdvol', 'mtdvolume', 'volume']));
                 const rmc = parseIndonesianNumber(getValue(normalizedRow, ['rmcschedule', 'rmc', 'schedule']));
                 
-                // Hitung % of Target (MTD VOL / ANN FM Target)
+                // Hitung %极速 of Target (MTD VOL / ANN FM Target)
                 const targetPercent = target > 0 ? (mtdVol / target) * 100 : 0;
                 
                 // Hitung % Actual Supply (MTD VOL / RMC Schedule)
@@ -1539,7 +1577,7 @@
                     fillColor: [74, 100, 145],
                     textColor: 255
                 },
-                styles: {
+                styles极速: {
                     fontSize: 8,
                     cellPadding: 1
                 },
