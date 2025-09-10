@@ -860,7 +860,7 @@
                         let period = "Data tidak ditemukan";
                         // Coba ambil dari berbagai lokasi yang mungkin
                         if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1'].v;
-                        if (worksheet['B1'] && worksheet['B1'].v) period = worksheet['B1'].v;
+                        if (worksheet['B1'] && worksheet['B1'].v) period = worksheet['B1].v;
                         
                         currentPeriod = period;
                         document.getElementById('period-value').textContent = period;
@@ -1185,6 +1185,10 @@
                         title: {
                             display: true,
                             text: 'Volume'
+                        },
+                        grid: {
+                            display: true,
+                            color: "rgba(0, 0, 0, 0.1)"
                         }
                     },
                     y1: {
@@ -1197,7 +1201,12 @@
                             display: true,
                             text: 'Percentage (%)'
                         },
-                        max: 100
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
                     }
                 },
                 plugins: {
@@ -1206,18 +1215,26 @@
                         position: 'top'
                     },
                     datalabels: {
-                        display: false, // Default disembunyikan
+                        display: true,
                         color: '#000',
                         font: {
                             weight: 'bold',
                             size: 11
                         },
-                        formatter: function(value) {
+                        formatter: function(value, context) {
+                            // Untuk persentase, tampilkan dengan simbol %
+                            if (context.datasetIndex === 2) {
+                                return value.toFixed(1) + '%';
+                            }
+                            // Untuk nilai volume, format dengan K untuk ribuan
                             if (value >= 1000) {
                                 return (value/1000).toFixed(1) + 'K';
                             }
                             return value.toFixed(1);
-                        }
+                        },
+                        anchor: 'end',
+                        align: 'top',
+                        offset: 5
                     }
                 }
             };
@@ -1233,13 +1250,19 @@
                             label: 'MTD VOL',
                             data: [],
                             backgroundColor: 'rgba(138, 43, 226, 0.7)', // Biru violet
-                            order: 3
+                            order: 3,
+                            datalabels: {
+                                display: false // Sembunyikan label untuk dataset ini
+                            }
                         },
                         {
                             label: 'ANN FM Target',
                             data: [],
                             backgroundColor: 'rgba(128, 0, 128, 0.7)', // Ungu
-                            order: 2
+                            order: 2,
+                            datalabels: {
+                                display: false // Sembunyikan label untuk dataset ini
+                            }
                         },
                         {
                             label: '% Target',
@@ -1247,7 +1270,9 @@
                             type: 'line',
                             borderColor: 'rgba(255, 165, 0, 1)', // Orange
                             backgroundColor: 'rgba(255, 165, 0, 0.2)',
-                            borderWidth: 2,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'rgba(255, 165, 0, 1)',
                             fill: false,
                             yAxisID: 'y1',
                             order: 1
@@ -1268,13 +1293,19 @@
                             label: 'RMC Schedule',
                             data: [],
                             backgroundColor: 'rgba(255, 0, 255, 0.7)', // Magenta
-                            order: 3
+                            order: 3,
+                            datalabels: {
+                                display: false // Sembunyikan label untuk dataset ini
+                            }
                         },
                         {
                             label: 'MTD VOL',
                             data: [],
                             backgroundColor: 'rgba(138, 43, 226, 0.7)', // Biru violet
-                            order: 2
+                            order: 2,
+                            datalabels: {
+                                display: false // Sembunyikan label untuk dataset ini
+                            }
                         },
                         {
                             label: '% Actual',
@@ -1282,7 +1313,9 @@
                             type: 'line',
                             borderColor: 'rgba(255, 69, 0, 1)', // Orange-red
                             backgroundColor: 'rgba(255, 69, 0, 0.2)',
-                            borderWidth: 2,
+                            borderWidth: 3,
+                            pointRadius: 5,
+                            pointBackgroundColor: 'rgba(255, 69, 0, 1)',
                             fill: false,
                             yAxisID: 'y1',
                             order: 1
@@ -1303,12 +1336,53 @@
                         data: [],
                         backgroundColor: 'rgba(153, 102, 255, 0.7)',
                         borderColor: 'rgba(153, 102, 255, 1)',
-                        borderWidth: 2,
+                        borderWidth: 3,
+                        pointRadius: 5,
+                        pointBackgroundColor: 'rgba(153, 102, 255, 1)',
                         fill: true,
                         tension: 0.4
                     }]
                 },
-                options: commonOptions
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volume'
+                            },
+                            grid: {
+                                display: true,
+                                color: "rgba(0, 0, 0, 0.1)"
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        datalabels: {
+                            display: true,
+                            color: '#000',
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            },
+                            formatter: function(value) {
+                                if (value >= 1000) {
+                                    return (value/1000).toFixed(1) + 'K';
+                                }
+                                return value.toFixed(1);
+                            },
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 5
+                        }
+                    }
+                }
             });
         }
         
@@ -1471,12 +1545,20 @@
                                 weight: 'bold',
                                 size: 11
                             },
-                            formatter: function(value) {
+                            formatter: function(value, context) {
+                                // Untuk persentase, tampilkan dengan simbol %
+                                if (context.datasetIndex === 2) {
+                                    return value.toFixed(1) + '%';
+                                }
+                                // Untuk nilai volume, format dengan K untuk ribuan
                                 if (value >= 1000) {
                                     return (value/1000).toFixed(1) + 'K';
                                 }
                                 return value.toFixed(1);
-                            }
+                            },
+                            anchor: 'end',
+                            align: 'top',
+                            offset: 5
                         };
                     } else {
                         charts[chartId].options.plugins.datalabels.display = showDataLabels;
@@ -1605,7 +1687,7 @@
                     rmc.toLocaleString('id-ID'),
                     `${actualSupply.toFixed(2)}%`
                 ]);
-            });
+            }
             
             // Buat tabel
             doc.autoTable({
