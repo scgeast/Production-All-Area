@@ -119,3 +119,28 @@ function updateCharts(data) {
     // Update semua chart dengan data baru
     // Implementasi update chart
 }
+
+function toggleSidebar() {
+    console.log("Toggle sidebar clicked!"); // Untuk debugging
+    
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const toggleBtn = document.querySelector('.sidebar-toggle');
+    
+    if (sidebar && mainContent) {
+        // Toggle class collapsed pada sidebar
+        sidebar.classList.toggle('collapsed');
+        
+        // Toggle class expanded pada main content
+        mainContent.classList.toggle('expanded');
+        
+        // Ganti icon/teks pada tombol (optional)
+        if (toggleBtn) {
+            if (sidebar.classList.contains('collapsed')) {
+                toggleBtn.innerHTML = '→'; // atau icon panah kanan
+            } else {
+                toggleBtn.innerHTML = '←'; // atau icon panah kiri
+            }
+        }
+    }
+}
