@@ -11,74 +11,105 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 20px;
-            background-color: #f5f7ff;
+            background: linear-gradient(135deg, #f5f7ff 0%, #e3e6ff 100%);
             color: #333;
+            min-height: 100vh;
         }
         .container {
             max-width: 900px;
-            margin: 0 auto;
+            margin: 20px auto;
             background-color: white;
             padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         }
         h1 {
             text-align: center;
             color: #2c3e50;
             margin-bottom: 10px;
+            font-weight: 700;
         }
         .description {
             text-align: center;
             color: #7f8c8d;
             margin-bottom: 30px;
+            font-size: 1.1em;
         }
         .chart-container {
             position: relative;
             height: 400px;
-            margin-bottom: 30px;
+            margin: 30px 0;
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
         }
         .controls {
             display: flex;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 25px;
+            margin: 25px 0;
+            flex-wrap: wrap;
         }
         .toggle-btn {
-            padding: 10px 20px;
-            background-color: #3498db;
+            padding: 12px 25px;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
             color: white;
             border: none;
-            border-radius: 5px;
+            border-radius: 50px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(52, 152, 219, 0.3);
         }
         .toggle-btn:hover {
-            background-color: #2980b9;
-            transform: translateY(-2px);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
         }
         .toggle-btn.active {
-            background-color: #2c3e50;
+            background: linear-gradient(to bottom, #2c3e50, #1a2530);
+            box-shadow: 0 4px 8px rgba(44, 62, 80, 0.3);
         }
         .instructions {
             background-color: #f8f9fa;
             padding: 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             margin-top: 25px;
-            border-left: 4px solid #3498db;
+            border-left: 5px solid #3498db;
         }
         code {
             background-color: #eee;
-            padding: 2px 5px;
-            border-radius: 3px;
-            font-family: monospace;
+            padding: 3px 6px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
         }
         .highlight {
             background-color: #fff8e1;
-            padding: 15px;
-            border-radius: 5px;
-            margin-top: 15px;
-            border-left: 4px solid #ffc107;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 5px solid #ffc107;
+            overflow-x: auto;
+        }
+        pre {
+            margin: 0;
+            line-height: 1.5;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            .toggle-btn {
+                width: 80%;
+            }
         }
     </style>
 </head>
@@ -97,37 +128,27 @@
         </div>
         
         <div class="instructions">
-            <h3>Cara Implementasi:</h3>
-            <p>Untuk menambahkan fitur toggle data label pada chart, Anda perlu:</p>
-            <ol>
-                <li>Menyertakan plugin <code>chartjs-plugin-datalabels</code></li>
-                <li>Menambahkan konfigurasi plugin pada opsi chart</li>
-                <li>Membuat fungsi untuk mengubah visibilitas data label</li>
-            </ol>
+            <h3>Perubahan Warna Font Data Label:</h3>
+            <p>Untuk mengubah warna font data label menjadi hitam, ubah properti <code>color</code> dalam konfigurasi datalabels:</p>
             
             <div class="highlight">
-                <h4>Kode yang perlu ditambahkan di chartConfig.js:</h4>
-                <pre><code>// Dalam opsi chart, tambahkan:
-plugins: {
-    datalabels: {
-        display: true, // Default true (ditampilkan)
-        color: '#fff',
-        font: {
-            weight: 'bold',
-            size: 11
-        },
-        formatter: function(value, context) {
-            return value.toLocaleString();
-        }
-    }
+                <h4>Perubahan yang diperlukan:</h4>
+                <pre><code>// Sebelumnya:
+datalabels: {
+    display: true,
+    color: '#fff',  // Warna putih
+    // ...
 }
 
-// Fungsi untuk toggle data label
-function toggleDataLabels(chart, show) {
-    chart.options.plugins.datalabels.display = show;
-    chart.update();
+// Menjadi:
+datalabels: {
+    display: true,
+    color: '#000',  // Warna hitam
+    // ...
 }</code></pre>
             </div>
+
+            <p>Perubahan ini sudah diterapkan pada chart di atas. Coba toggle data label untuk melihat perbedaannya.</p>
         </div>
     </div>
 
@@ -146,7 +167,23 @@ function toggleDataLabels(chart, show) {
                     {
                         label: 'MTD VOL',
                         data: mtdData,
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        backgroundColor: [
+                            'rgba(255, 99, 132, 0.7)',
+                            'rgba(54, 162, 235, 0.7)',
+                            'rgba(255, 206, 86, 0.7)',
+                            'rgba(75, 192, 192, 0.7)',
+                            'rgba(153, 102, 255, 0.7)',
+                            'rgba(255, 159, 64, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgba(255, 99, 132, 1)',
+                            'rgba(54, 162, 235, 1)',
+                            'rgba(255, 206, 86, 1)',
+                            'rgba(75, 192, 192, 1)',
+                            'rgba(153, 102, 255, 1)',
+                            'rgba(255, 159, 64, 1)'
+                        ],
+                        borderWidth: 1,
                         order: 2
                     },
                     {
@@ -173,14 +210,29 @@ function toggleDataLabels(chart, show) {
                         title: {
                             display: true,
                             text: 'Volume'
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
                         }
                     }
                 },
                 plugins: {
-                    // Konfigurasi data labels
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    // Konfigurasi data labels - MENGUBAH COLOR MENJADI HITAM (#000)
                     datalabels: {
                         display: true,
-                        color: '#fff',
+                        color: '#000', // Diubah dari '#fff' (putih) menjadi '#000' (hitam)
                         font: {
                             weight: 'bold',
                             size: 11
@@ -216,5 +268,9 @@ function toggleDataLabels(chart, show) {
             toggleDataLabels(false);
         });
     </script>
+
+    <div class="footer">
+        <p>Contoh implementasi data labels dengan warna font hitam | © 2023</p>
+    </div>
 </body>
 </html>
