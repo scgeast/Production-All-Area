@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -9,7 +8,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -845,7 +843,7 @@
         }
         
         function parseExcelFile(file) {
-            return new Promise((resolve, reject) {
+            return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 
                 reader.onload = function(e) {
@@ -1124,7 +1122,7 @@
             previewBody.innerHTML = '';
             
             if (data.length === 0) {
-                previewBody.innerHTML = '<tr><td colspan="8, style="text-align: center;">Tidak ada data untuk ditampilkan</td></tr>';
+                previewBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Tidak ada data untuk ditampilkan</td></tr>';
                 return;
             }
             
@@ -1401,7 +1399,6 @@
             document.getElementById('target-percent').textContent = `${avgTargetPercent.toFixed(2)}%`;
             document.getElementById('supply-percent').textContent = `${avgActualSupply.toFixed(2)}%`;
             
-            
             // Siapkan data untuk chart berdasarkan plant
             const plantData = {};
             
@@ -1560,69 +1557,68 @@
         
         function exportToPDF() {
             if (filteredData.length === 0) {
-                alert('Tidak ada data untuk diexport');
-                return;
+            alert('Tidak ada data untuk diexport');
+            return;
             }
-            
+    
             // Tampilkan loading
             showLoading();
-            
+    
             // Buat instance jsPDF
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF('landscape', 'mm', 'a4');
-            
+    
             // Tambahkan judul
             doc.setFontSize(18);
             doc.text(document.getElementById('dynamic-title').textContent, 145, 15, { align: 'center' });
             doc.setFontSize(12);
             doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 145, 22, { align: 'center' });
             doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 145, 28, { align: 'center' });
-            
+    
             // Capture charts as images and add to PDF
             const chartIds = ['volumeTargetChart', 'rmcVolumeChart', 'avgVolumeChart'];
+            const chartPromises = [];
+    
+            // Buat promise untuk setiap chart
+        chartIds.forEach(chartId => {
+            const canvas = document.getElementById(chartId);
+            chartPromises.push(
+                html2canvas(canvas, {
+                    scale: 2, // Kualitas lebih tinggi
+                    logging: false,
+                    useCORS: true
+                })
+            );
+        });
+    
+            // Tunggu semua chart selesai di-render
+            Promise.all(chartPromises)
+                .then(canvases => {
+                    let yPosition = 40;
             
-            let yPosition = 40;
-            const imgWidth = 120;
-            
-            // Fungsi rekursif untuk menambahkan chart ke PDF
-            function addChartToPDF(index) {
-                if (index >= chartIds.length) {
-                    // Semua chart telah diproses, tambahkan data table
-                    addDataTableToPDF(doc);
-                    return;
+                    canvases.forEach((canvas, index) => {
+                        const imgData = canvas.toDataURL('image/png');
+                        const imgWidth = 120;
+                        const imgHeight = canvas.height * imgWidth / canvas.width;
+                
+                // Jika tidak cukup ruang di halaman saat ini, tambahkan halaman baru
+                if (yPosition + imgHeight > 180) {
+                    doc.addPage();
+                    yPosition = 20;
                 }
                 
-                const chartId = chartIds[index];
-                html2canvas(document.getElementById(chartId)).then(canvas => {
-                    const imgData = canvas.toDataURL('image/png');
-                    const imgHeight = canvas.height * imgWidth / canvas.width;
-                    
-                    // Jika tidak cukup ruang di halaman saat ini, tambahkan halaman baru
-                    if (yPosition + imgHeight > 180) {
-                        doc.addPage();
-                        yPosition = 20;
-                    }
-                    
-                    // Tambahkan chart ke PDF
-                    doc.addImage(imgData, 'PNG', (index % 2 === 0) ? 15 : 145, yPosition, imgWidth, imgHeight);
-                    
-                    // Jika ini adalah chart kedua di baris yang sama, pindah ke baris berikutnya
-                    if (index % 2 === 1) {
-                        yPosition += imgHeight + 10;
-                    }
-                    
-                    // Proses chart berikutnya
-                    setTimeout(() => {
-                        addChartToPDF(index + 1);
-                    }, 500);
-                });
-            }
+                // Atur posisi chart (kiri untuk chart ganjil, kanan untuk chart genap)
+                const xPosition = (index % 2 === 0) ? 15 : 145;
+                
+                // Tambahkan chart ke PDF
+                doc.addImage(imgData, 'PNG', xPosition, yPosition, imgWidth, imgHeight);
+                
+                // Jika ini adalah chart kedua di baris yang sama, pindah ke baris berikutnya
+                if (index % 2 === 1) {
+                    yPosition += imgHeight + 10;
+                }
+            });
             
-            // Mulai proses dengan chart pertama
-            addChartToPDF(0);
-        }
-        
-        function addDataTableToPDF(doc) {
             // Tambahkan halaman baru untuk tabel data
             doc.addPage();
             
@@ -1677,7 +1673,13 @@
             
             // Sembunyikan loading
             hideLoading();
-        }
+        })
+        .catch(error => {
+            console.error('Error generating PDF:', error);
+            alert('Terjadi kesalahan saat membuat PDF: ' + error.message);
+            hideLoading();
+        });
+    }
     </script>
 </body>
 </html>
