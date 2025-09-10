@@ -1197,7 +1197,7 @@
                     <td>${area}</td>
                     <td>${plant}</td>
                     <td>${target.toLocaleString('id-ID')}</td>
-                    <td>${mtdVol.toLocaleString('id-ID')}</td>
+                    <td>${mtdVol.toLocaleString('id-ID')</td>
                     <td class="percentage-cell">${targetPercent.toFixed(2)}%</td>
                     <td>${rmc.toLocaleString('id-ID')}</td>
                     <td class="percentage-cell">${actualSupply.toFixed(2)}%</td>
@@ -1253,7 +1253,7 @@
                 totalMtdVol += isNaN(mtdVol) ? 0 : mtdVol;
                 totalRmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
                 totalTargetPercent += isNaN(targetPercent) ? 0 : targetPercent;
-                totalActualSupply += isNaN(actualSupply) * 100 : 0;
+                totalActualSupply += isNaN(actualSupply) ? 0 : actualSupply;
                 count++;
             });
             
