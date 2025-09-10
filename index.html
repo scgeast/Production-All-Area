@@ -356,13 +356,9 @@
         
         .charts-container {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr;
             gap: 20px;
             margin-bottom: 20px;
-        }
-        
-        .charts-container.vertical {
-            grid-template-columns: 1fr;
         }
         
         .chart-card {
@@ -436,6 +432,12 @@
             background-color: #f8d7da;
             border-radius: 5px;
             display: none;
+        }
+        
+        @media (min-width: 1200px) {
+            .charts-container {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
         
         @media (max-width: 1200px) {
@@ -1107,14 +1109,6 @@
                 }
             }
             
-            // Ubah layout chart jika select all dipilih
-            const chartsContainer = document.getElementById('charts-container');
-            if (isAllAreasSelected) {
-                chartsContainer.classList.add('vertical');
-            } else {
-                chartsContainer.classList.remove('vertical');
-            }
-            
             // Normalisasi data yang sudah difilter
             const normalizedData = normalizeData(filteredData);
             
@@ -1208,15 +1202,24 @@
                     datalabels: {
                         display: false, // Default disembunyikan
                         color: '#000',
+                        align: 'top',
+                        anchor: 'end',
                         font: {
-                            weight: 'bold',
-                            size: 11
+                            size: 11,
+                            weight: 'normal' // Hilangkan bold
                         },
-                        formatter: function(value) {
-                            if (value >= 1000) {
-                                return (value/1000).toFixed(1) + 'K';
+                        formatter: function(value, context) {
+                            // Format angka sesuai dengan yang ada di tabel
+                            if (context.datasetIndex === 2) {
+                                // Untuk persentase (dataset ke-3)
+                                return value.toFixed(2) + '%';
+                            } else {
+                                // Untuk nilai volume
+                                if (value >= 1000) {
+                                    return (value/1000).toFixed(1) + 'K';
+                                }
+                                return value.toFixed(1);
                             }
-                            return value.toFixed(1);
                         }
                     }
                 }
@@ -1308,7 +1311,41 @@
                         tension: 0.4
                     }]
                 },
-                options: commonOptions
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volume'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        datalabels: {
+                            display: false,
+                            color: '#000',
+                            align: 'top',
+                            anchor: 'end',
+                            font: {
+                                size: 11,
+                                weight: 'normal'
+                            },
+                            formatter: function(value) {
+                                if (value >= 1000) {
+                                    return (value/1000).toFixed(1) + 'K';
+                                }
+                                return value.toFixed(1);
+                            }
+                        }
+                    }
+                }
             });
         }
         
@@ -1466,22 +1503,30 @@
                     if (!charts[chartId].options.plugins.datalabels) {
                         charts[chartId].options.plugins.datalabels = {
                             display: showDataLabels,
-                            color: '#000', // WARNA HITAM
+                            color: '#000',
+                            align: 'top',
+                            anchor: 'end',
                             font: {
-                                weight: 'bold',
-                                size: 11
+                                size: 11,
+                                weight: 'normal'
                             },
-                            formatter: function(value) {
-                                if (value >= 1000) {
-                                    return (value/1000).toFixed(1) + 'K';
+                            formatter: function(value, context) {
+                                if (context.datasetIndex === 2) {
+                                    // Untuk persentase (dataset ke-3)
+                                    return value.toFixed(2) + '%';
+                                } else {
+                                    // Untuk nilai volume
+                                    if (value >= 1000) {
+                                        return (value/1000).toFixed(1) + 'K';
+                                    }
+                                    return value.toFixed(1);
                                 }
-                                return value.toFixed(1);
                             }
                         };
                     } else {
                         charts[chartId].options.plugins.datalabels.display = showDataLabels;
-                        // PASTIKAN WARNA SELALU HITAM
                         charts[chartId].options.plugins.datalabels.color = '#000';
+                        charts[chartId].options.plugins.datalabels.font.weight = 'normal';
                     }
     
                     // Update chart
