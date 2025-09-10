@@ -1378,28 +1378,36 @@
                 'volumeTargetChart', 'targetPercentChart', 
                 'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
             ];
-    
+
             chartIds.forEach(chartId => {
                 if (charts[chartId]) {
                     // Pastikan opsi datalabels ada
                     if (!charts[chartId].options.plugins.datalabels) {
                         charts[chartId].options.plugins.datalabels = {
                             display: showDataLabels,
-                            color: '#000',
+                            color: '#000', // WARNA HITAM
                             font: {
                                 weight: 'bold',
                                 size: 11
+                            },
+                            formatter: function(value) {
+                                if (value >= 1000) {
+                                    return (value/1000).toFixed(1) + 'K';
+                                }
+                                return value.toFixed(1);
                             }
                         };
                     } else {
                         charts[chartId].options.plugins.datalabels.display = showDataLabels;
+                        // PASTIKAN WARNA SELALU HITAM
+                        charts[chartId].options.plugins.datalabels.color = '#000';
                     }
-            
+    
                     // Update chart
                     charts[chartId].update();
                 }
             });
-    
+          
             // Update status toggle button
             document.getElementById('data-labels-toggle').checked = showDataLabels;
         }
