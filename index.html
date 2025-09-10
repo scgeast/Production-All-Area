@@ -913,7 +913,7 @@
                         // Ambil periode dari header
                         let period = "Data tidak ditemukan";
                         // Coba ambil dari berbagai lokasi yang mungkin
-                        if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1].v;
+                        if (worksheet['A1'] && worksheet['A1'].v) period = worksheet['A1'].v;
                         if (worksheet['B1'] && worksheet['B1'].v) period = worksheet['B1'].v;
                         
                         currentPeriod = period;
@@ -1382,6 +1382,29 @@
                         },
                         datalabels: {
                             display: false,
+                            color: '
+                                <!-- Fortset dari kode sebelumnya (setelah kode CSS) -->
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Volume'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        datalabels: {
+                            display: false,
                             color: '#000',
                             align: 'top',
                             anchor: 'end',
@@ -1482,7 +1505,7 @@
                 plantData[plant].target += isNaN(target) ? 0 : target;
                 plantData[plant].mtdVol += isNaN(mtdVol) ? 0 : mtdVol;
                 plantData[plant].targetPercent += isNaN(targetPercent) ? 0 : targetPercent;
-                plantData[plant].avgVolDay += isNaN(avgVolDay)  ? 0 : avgVolDay;
+                plantData[plant].avgVolDay += isNaN(avgVolDay) ? 0 : avgVolDay;
                 plantData[plant].rmcSchedule += isNaN(rmcSchedule) ? 0 : rmcSchedule;
                 plantData[plant].actualSupply += isNaN(actualSupply) ? 0 : actualSupply;
                 plantData[plant].count += 1;
