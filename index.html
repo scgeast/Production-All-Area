@@ -685,6 +685,9 @@
     </div>
 
     <script>
+        // Daftarkan plugin Chart.js
+        Chart.register(ChartDataLabels);
+        
         // Inisialisasi variabel global untuk chart
         let charts = {};
         let rawData = [];
@@ -1143,48 +1146,56 @@
             return '';
         }
         
-        function initializeCharts() {
-            // Inisialisasi semua chart dengan data kosong
-            const chartIds = [
-                'volumeTargetChart', 'targetPercentChart', 
-                'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
-            ];
-            
-            chartIds.forEach(id => {
-                const ctx = document.getElementById(id).getContext('2d');
-                
-                charts[id] = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: [],
-                        datasets: [{
+         function initializeCharts() {
+              // Konfigurasi options yang konsisten untuk semua chart
+              const commonOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top'
+                        },
+                        datalabels: {
+                            display: false, // Default disembunyikan
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            },
+                            formatter: function(value) {
+                                if (value >= 1000) {
+                                    return (value/1000).toFixed(1) + 'K';
+                                }
+                                return value.toFixed(1);
+                            }
+                        }
+                    }
+                };
+
+                // Inisialisasi semua chart dengan konfigurasi yang konsisten
+                const chartIds = [
+                    'volumeTargetChart', 'targetPercentChart', 
+                    'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
+                ];
+    
+                chartIds.forEach(id => {
+                    const ctx = document.getElementById(id).getContext('2d');
+        
+                    charts[id] = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: [],
+                            datasets: [{
                             label: 'Data',
                             data: [],
                             backgroundColor: 'rgba(54, 162, 235, 0.7)'
                         }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: { beginAtZero: true }
-                        },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top'
-                            },
-                            datalabels: {
-                                display: false,
-                                color: 'black',
-                                align: 'end',
-                                anchor: 'end',
-                                formatter: function(value) {
-                                    return value.toFixed(1);
-                                }
-                            }
-                        }
-                    }
+                     },
+                    options: commonOptions
                 });
             });
         }
@@ -1367,13 +1378,30 @@
                 'volumeTargetChart', 'targetPercentChart', 
                 'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
             ];
-            
+    
             chartIds.forEach(chartId => {
                 if (charts[chartId]) {
-                    charts[chartId].options.plugins.datalabels.display = showDataLabels;
+                    // Pastikan opsi datalabels ada
+                    if (!charts[chartId].options.plugins.datalabels) {
+                        charts[chartId].options.plugins.datalabels = {
+                            display: showDataLabels,
+                            color: '#fff',
+                            font: {
+                                weight: 'bold',
+                                size: 11
+                            }
+                        };
+                    } else {
+                        charts[chartId].options.plugins.datalabels.display = showDataLabels;
+                    }
+            
+                    // Update chart
                     charts[chartId].update();
                 }
             });
+    
+            // Update status toggle button
+            document.getElementById('data-labels-toggle').checked = showDataLabels;
         }
         
         function exportToExcel() {
