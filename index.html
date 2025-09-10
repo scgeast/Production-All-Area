@@ -208,9 +208,12 @@
         }
         
         .last-update {
-            text-align: right;
+            text-align: left;
             font-size: 0.9rem;
             opacity: 0.9;
+            position: absolute;
+            bottom: 10px;
+            left: 20px;
         }
         
         .export-buttons {
@@ -457,7 +460,9 @@
             }
             
             .last-update {
+                position: static;
                 text-align: center;
+                margin-top: 10px;
             }
             
             .export-buttons {
@@ -568,9 +573,6 @@
     <div class="main-content">
         <header>
             <div class="header-top">
-                <div class="last-update">
-                    Last Update: <span id="last-update-time"></span>
-                </div>
                 <div class="export-buttons">
                     <button class="export-btn" onclick="exportToExcel()">
                         <i class="fas fa-file-excel"></i> Export Excel
@@ -581,8 +583,11 @@
                 </div>
             </div>
             
-            <h1>PRODUCTION ALL AREA</h1>
+            <h1 id="dynamic-title">PRODUCTION ALL AREA</h1>
             <div class="period">Periode: <span id="period-value">Unggah file Excel untuk melihat periode</span></div>
+            <div class="last-update">
+                Last Update: <span id="last-update-time"></span>
+            </div>
         </header>
         
         <div class="error-message" id="error-message"></div>
@@ -626,33 +631,21 @@
             
             <div class="charts-container" id="charts-container">
                 <div class="chart-card">
-                    <div class="chart-title">MTD VOL vs ANN FM Target per Plant</div>
+                    <div class="chart-title">MTD VOL x ANN FM Target x % Target per Plant</div>
                     <div class="chart-container">
                         <canvas id="volumeTargetChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
-                    <div class="chart-title">% of Target per Plant</div>
+                    <div class="chart-title">RMC Schedule x MTD VOL x % Actual per Plant</div>
                     <div class="chart-container">
-                        <canvas id="targetPercentChart"></canvas>
+                        <canvas id="rmcVolumeChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
                     <div class="chart-title">Avg Vol. Day per Plant</div>
                     <div class="chart-container">
                         <canvas id="avgVolumeChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-title">RMC Schedule vs MTD VOL per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="rmcVolumeChart"></canvas>
-                    </div>
-                </div>
-                <div class="chart-card">
-                    <div class="chart-title">% Actual Supply per Plant</div>
-                    <div class="chart-container">
-                        <canvas id="supplyPercentChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -698,6 +691,7 @@
         let isAllAreasSelected = false;
         let activePeriodFilter = "all";
         let showDataLabels = false;
+        let selectedAreaName = "ALL";
         
         // Update waktu terakhir
         function updateLastUpdateTime() {
@@ -712,6 +706,36 @@
                 minute: '2-digit'
             });
             document.getElementById('last-update-time').textContent = `${formattedDate} ${formattedTime}`;
+        }
+        
+        // Update judul berdasarkan area yang dipilih
+        function updateTitle() {
+            let title = "PRODUCTION";
+            
+            if (isAllAreasSelected) {
+                title += " ALL AREA";
+                selectedAreaName = "ALL";
+            } else {
+                const selectedAreas = [];
+                const checkboxes = document.querySelectorAll('input[name="area"]:checked');
+                
+                checkboxes.forEach(checkbox => {
+                    selectedAreas.push(checkbox.value);
+                });
+                
+                if (selectedAreas.length === 1) {
+                    title += " " + selectedAreas[0].toUpperCase() + " AREA";
+                    selectedAreaName = selectedAreas[0].toUpperCase();
+                } else if (selectedAreas.length > 1) {
+                    title += " MULTIPLE AREAS";
+                    selectedAreaName = "MULTIPLE";
+                } else {
+                    title += " ALL AREA";
+                    selectedAreaName = "ALL";
+                }
+            }
+            
+            document.getElementById('dynamic-title').textContent = title;
         }
         
         // Toggle sidebar
@@ -989,6 +1013,7 @@
             // Set select all sebagai checked
             document.getElementById('select-all-areas').checked = true;
             isAllAreasSelected = true;
+            updateTitle();
         }
         
         function populatePeriodFilter(periods) {
@@ -1013,6 +1038,7 @@
                 checkbox.checked = checked;
             });
             isAllAreasSelected = checked;
+            updateTitle();
         }
         
         function applyAreaFilter() {
@@ -1029,6 +1055,8 @@
             } else {
                 isAllAreasSelected = false;
             }
+            
+            updateTitle();
             
             // Terapkan filter
             applyFilters();
@@ -1146,57 +1174,141 @@
             return '';
         }
         
-         function initializeCharts() {
-              // Konfigurasi options yang konsisten untuk semua chart
-              const commonOptions = {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: { beginAtZero: true }
-                    },
-                    plugins: {
-                        legend: {
+        function initializeCharts() {
+            // Konfigurasi options yang konsisten untuk semua chart
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        title: {
                             display: true,
-                            position: 'top'
+                            text: 'Volume'
+                        }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
                         },
-                        datalabels: {
-                            display: false, // Default disembunyikan
-                            color: '#000',
-                            font: {
-                                weight: 'bold',
-                                size: 11
-                            },
-                            formatter: function(value) {
-                                if (value >= 1000) {
-                                    return (value/1000).toFixed(1) + 'K';
-                                }
-                                return value.toFixed(1);
+                        title: {
+                            display: true,
+                            text: 'Percentage (%)'
+                        },
+                        max: 100
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    datalabels: {
+                        display: false, // Default disembunyikan
+                        color: '#000',
+                        font: {
+                            weight: 'bold',
+                            size: 11
+                        },
+                        formatter: function(value) {
+                            if (value >= 1000) {
+                                return (value/1000).toFixed(1) + 'K';
                             }
+                            return value.toFixed(1);
                         }
                     }
-                };
+                }
+            };
 
-                // Inisialisasi semua chart dengan konfigurasi yang konsisten
-                const chartIds = [
-                    'volumeTargetChart', 'targetPercentChart', 
-                    'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
-                ];
-    
-                chartIds.forEach(id => {
-                    const ctx = document.getElementById(id).getContext('2d');
-        
-                    charts[id] = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: [],
-                            datasets: [{
-                            label: 'Data',
+            // Inisialisasi chart untuk MTD VOL x ANN FM Target x % Target
+            const volumeTargetCtx = document.getElementById('volumeTargetChart').getContext('2d');
+            charts['volumeTargetChart'] = new Chart(volumeTargetCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'MTD VOL',
                             data: [],
-                            backgroundColor: 'rgba(54, 162, 235, 0.7)'
-                        }]
-                     },
-                    options: commonOptions
-                });
+                            backgroundColor: 'rgba(138, 43, 226, 0.7)', // Biru violet
+                            order: 3
+                        },
+                        {
+                            label: 'ANN FM Target',
+                            data: [],
+                            backgroundColor: 'rgba(128, 0, 128, 0.7)', // Ungu
+                            order: 2
+                        },
+                        {
+                            label: '% Target',
+                            data: [],
+                            type: 'line',
+                            borderColor: 'rgba(255, 165, 0, 1)', // Orange
+                            backgroundColor: 'rgba(255, 165, 0, 0.2)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+            
+            // Inisialisasi chart untuk RMC Schedule x MTD VOL x % Actual
+            const rmcVolumeCtx = document.getElementById('rmcVolumeChart').getContext('2d');
+            charts['rmcVolumeChart'] = new Chart(rmcVolumeCtx, {
+                type: 'bar',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'RMC Schedule',
+                            data: [],
+                            backgroundColor: 'rgba(255, 0, 255, 0.7)', // Magenta
+                            order: 3
+                        },
+                        {
+                            label: 'MTD VOL',
+                            data: [],
+                            backgroundColor: 'rgba(138, 43, 226, 0.7)', // Biru violet
+                            order: 2
+                        },
+                        {
+                            label: '% Actual',
+                            data: [],
+                            type: 'line',
+                            borderColor: 'rgba(255, 69, 0, 1)', // Orange-red
+                            backgroundColor: 'rgba(255, 69, 0, 0.2)',
+                            borderWidth: 2,
+                            fill: false,
+                            yAxisID: 'y1',
+                            order: 1
+                        }
+                    ]
+                },
+                options: commonOptions
+            });
+            
+            // Inisialisasi chart untuk Avg Vol. Day
+            const avgVolumeCtx = document.getElementById('avgVolumeChart').getContext('2d');
+            charts['avgVolumeChart'] = new Chart(avgVolumeCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Avg Vol. Day',
+                        data: [],
+                        backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                        borderColor: 'rgba(153, 102, 255, 1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: commonOptions
             });
         }
         
@@ -1294,90 +1406,59 @@
                 return;
             }
             
-            // Update chart data
-            updateChartData('volumeTargetChart', plantNames, 
-                [plantNames.map(p => plantData[p].mtdVol), plantNames.map(p => plantData[p].target)],
-                ['MTD VOL', 'ANN FM Target'],
-                ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 1)'],
-                ['bar', 'bar'],
-                [true, true]
-            );
+            // Update chart data untuk MTD VOL x ANN FM Target x % Target
+            updateVolumeTargetChart(plantNames, plantData);
             
-            updateChartData('targetPercentChart', plantNames, 
-                [plantNames.map(p => plantData[p].targetPercent / plantData[p].count)],
-                ['% of Target'],
-                ['rgba(75, 192, 192, 0.7)'],
-                ['bar'],
-                [true]
-            );
+            // Update chart data untuk RMC Schedule x MTD VOL x % Actual
+            updateRmcVolumeChart(plantNames, plantData);
             
-            updateChartData('avgVolumeChart', plantNames, 
-                [plantNames.map(p => plantData[p].avgVolDay / plantData[p].count)],
-                ['Avg Vol. Day'],
-                ['rgba(153, 102, 255, 0.7)'],
-                ['line'],
-                [true]
-            );
-            
-            updateChartData('rmcVolumeChart', plantNames, 
-                [plantNames.map(p => plantData[p].mtdVol), plantNames.map(p => plantData[p].rmcSchedule)],
-                ['MTD VOL', 'RMC Schedule'],
-                ['rgba(54, 162, 235, 0.7)', 'rgba(255, 159, 64, 1)'],
-                ['bar', 'line'],
-                [true, true]
-            );
-            
-            updateChartData('supplyPercentChart', plantNames, 
-                [plantNames.map(p => plantData[p].actualSupply / plantData[p].count)],
-                ['% Actual Supply'],
-                ['rgba(255, 205, 86, 0.7)'],
-                ['bar'],
-                [true]
-            );
+            // Update chart data untuk Avg Vol. Day
+            updateAvgVolumeChart(plantNames, plantData);
         }
         
-        function updateChartData(chartId, labels, datasetsData, datasetsLabel, colors, types, showDataLabelsArray) {
-            if (charts[chartId]) {
-                charts[chartId].data.labels = labels;
+        function updateVolumeTargetChart(plantNames, plantData) {
+            const mtdVolData = plantNames.map(p => plantData[p].mtdVol);
+            const targetData = plantNames.map(p => plantData[p].target);
+            const targetPercentData = plantNames.map(p => plantData[p].targetPercent / plantData[p].count);
+            
+            if (charts['volumeTargetChart']) {
+                charts['volumeTargetChart'].data.labels = plantNames;
+                charts['volumeTargetChart'].data.datasets[0].data = mtdVolData;
+                charts['volumeTargetChart'].data.datasets[1].data = targetData;
+                charts['volumeTargetChart'].data.datasets[2].data = targetPercentData;
                 
-                // Hapus dataset yang ada
-                charts[chartId].data.datasets = [];
+                charts['volumeTargetChart'].update();
+            }
+        }
+        
+        function updateRmcVolumeChart(plantNames, plantData) {
+            const rmcScheduleData = plantNames.map(p => plantData[p].rmcSchedule);
+            const mtdVolData = plantNames.map(p => plantData[p].mtdVol);
+            const actualSupplyData = plantNames.map(p => plantData[p].actualSupply / plantData[p].count);
+            
+            if (charts['rmcVolumeChart']) {
+                charts['rmcVolumeChart'].data.labels = plantNames;
+                charts['rmcVolumeChart'].data.datasets[0].data = rmcScheduleData;
+                charts['rmcVolumeChart'].data.datasets[1].data = mtdVolData;
+                charts['rmcVolumeChart'].data.datasets[2].data = actualSupplyData;
                 
-                // Tambahkan dataset baru
-                for (let i = 0; i < datasetsData.length; i++) {
-                    const dataset = {
-                        label: datasetsLabel[i],
-                        data: datasetsData[i],
-                        backgroundColor: colors[i],
-                        borderColor: colors[i].replace('0.7', '1'),
-                        borderWidth: 2
-                    };
-                    
-                    if (types[i] === 'line') {
-                        dataset.type = 'line';
-                        dataset.fill = false;
-                        dataset.pointStyle = 'circle';
-                        dataset.pointRadius = 5;
-                        dataset.pointBorderColor = colors[i].replace('0.7', '1');
-                        dataset.pointBackgroundColor = 'white';
-                        dataset.tension = 0.1;
-                    }
-                    
-                    charts[chartId].data.datasets.push(dataset);
-                }
+                charts['rmcVolumeChart'].update();
+            }
+        }
+        
+        function updateAvgVolumeChart(plantNames, plantData) {
+            const avgVolDayData = plantNames.map(p => plantData[p].avgVolDay / plantData[p].count);
+            
+            if (charts['avgVolumeChart']) {
+                charts['avgVolumeChart'].data.labels = plantNames;
+                charts['avgVolumeChart'].data.datasets[0].data = avgVolDayData;
                 
-                // Update data labels
-                updateChartsWithDataLabels();
-                
-                charts[chartId].update();
+                charts['avgVolumeChart'].update();
             }
         }
         
         function updateChartsWithDataLabels() {
-            const chartIds = [
-                'volumeTargetChart', 'targetPercentChart', 
-                'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
-            ];
+            const chartIds = ['volumeTargetChart', 'rmcVolumeChart', 'avgVolumeChart'];
 
             chartIds.forEach(chartId => {
                 if (charts[chartId]) {
@@ -1444,16 +1525,13 @@
             
             // Tambahkan judul
             doc.setFontSize(18);
-            doc.text('PRODUCTION REPORT', 145, 15, { align: 'center' });
+            doc.text(document.getElementById('dynamic-title').textContent, 145, 15, { align: 'center' });
             doc.setFontSize(12);
             doc.text(`Periode: ${document.getElementById('period-value').textContent}`, 145, 22, { align: 'center' });
             doc.text(`Tanggal Export: ${new Date().toLocaleDateString('id-ID')}`, 145, 28, { align: 'center' });
             
             // Capture charts as images and add to PDF
-            const chartIds = [
-                'volumeTargetChart', 'targetPercentChart', 
-                'avgVolumeChart', 'rmcVolumeChart', 'supplyPercentChart'
-            ];
+            const chartIds = ['volumeTargetChart', 'rmcVolumeChart', 'avgVolumeChart'];
             
             let yPosition = 40;
             const imgWidth = 120;
